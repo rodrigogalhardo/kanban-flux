@@ -82,7 +82,7 @@ export function InviteModal({
             <label className="mb-1.5 block text-sm font-medium text-neutral-900">
               Role
             </label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(val) => val && setRole(val)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

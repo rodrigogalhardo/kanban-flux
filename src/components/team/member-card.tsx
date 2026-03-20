@@ -50,10 +50,8 @@ export function MemberCard({
 
       <div className="mt-3 flex items-center gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="rounded-lg p-1.5 text-secondary hover:bg-surface">
-              <MoreVertical className="h-4 w-4" />
-            </button>
+          <DropdownMenuTrigger className="rounded-lg p-1.5 text-secondary hover:bg-surface">
+            <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onUpdateRole(member.id, "ADMIN")}>

@@ -186,7 +186,6 @@ export function CardDetailModal({
                 <Separator />
                 <ChecklistSection
                   checklists={card.checklists}
-                  cardId={card.id}
                   onUpdate={refreshCard}
                 />
               </>

@@ -9,11 +9,9 @@ import type { ChecklistWithItems } from "@/types";
 
 export function ChecklistSection({
   checklists,
-  cardId,
   onUpdate,
 }: {
   checklists: ChecklistWithItems[];
-  cardId: string;
   onUpdate: () => void;
 }) {
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});

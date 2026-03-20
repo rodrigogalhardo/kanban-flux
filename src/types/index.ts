@@ -7,7 +7,6 @@ import type {
   Comment,
   Label,
   User,
-  Workspace,
   WorkspaceMember,
 } from "@prisma/client";
 
