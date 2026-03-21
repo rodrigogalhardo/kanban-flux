@@ -16,8 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Project Space", icon: Briefcase, href: "/" },
-  { label: "Workspace", icon: LayoutDashboard, href: "/" },
+  { label: "Project Space", icon: Briefcase, href: "/project-space" },
+  { label: "Workspace", icon: LayoutDashboard, href: "/workspace" },
   { label: "Boards", icon: Columns3, href: "/" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Members", icon: Users, href: "/team" },
