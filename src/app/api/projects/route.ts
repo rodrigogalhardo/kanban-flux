@@ -55,6 +55,7 @@ export async function GET() {
       updatedAt: project.updatedAt,
       boardCount,
       agentCount: agentSet.size,
+      boards: project.boards.map((b) => ({ id: b.id, name: b.name })),
     };
   });
 

@@ -38,6 +38,7 @@ import {
   CheckCircle2,
   FolderGit2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface ProjectSummary {
@@ -51,6 +52,7 @@ interface ProjectSummary {
   updatedAt: string;
   boardCount: number;
   agentCount: number;
+  boards: { id: string; name: string }[];
 }
 
 const projectCovers = [
@@ -65,6 +67,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -161,7 +164,14 @@ export default function ProjectsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="flex items-center gap-2 truncate">
+                      <CardTitle
+                        className="flex items-center gap-2 truncate cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => {
+                          if (project.boards.length > 0) {
+                            router.push(`/board/${project.boards[0].id}`);
+                          }
+                        }}
+                      >
                         <FolderGit2 className="h-4 w-4 flex-shrink-0 text-primary" />
                         {project.name}
                       </CardTitle>

@@ -11,6 +11,7 @@ import {
   Calendar,
   Users,
   Bot,
+  Brain,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,7 @@ const navItems = [
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Members", icon: Users, href: "/team" },
   { label: "AI Agents", icon: Bot, href: "/agents" },
+  { label: "Intelligence", icon: Brain, href: "/intelligence" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 

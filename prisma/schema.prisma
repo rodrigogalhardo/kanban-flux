@@ -91,8 +91,11 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  boards    Board[]
+  workspace  Workspace    @relation(fields: [workspaceId], references: [id])
+  boards     Board[]
+  graphNodes GraphNode[]
+  graphEdges GraphEdge[]
+  simulations Simulation[]
 }
 
 model Column {
@@ -115,7 +118,7 @@ model Card {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  column     Column        @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  column     Column       @relation(fields: [columnId], references: [id], onDelete: Cascade)
   labels     CardLabel[]
   members    CardMember[]
   checklists Checklist[]
@@ -216,9 +219,9 @@ model Agent {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  runs     AgentRun[]
-  apiKey   AgentApiKey? @relation(fields: [apiKeyId], references: [id])
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs   AgentRun[]
+  apiKey AgentApiKey? @relation(fields: [apiKeyId], references: [id])
 }
 
 model AgentApiKey {
@@ -248,10 +251,10 @@ model AgentRun {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  agent     Agent       @relation(fields: [agentId], references: [id])
-  card      Card        @relation(fields: [cardId], references: [id])
-  parentRun AgentRun?   @relation("RunHierarchy", fields: [parentRunId], references: [id])
-  childRuns AgentRun[]  @relation("RunHierarchy")
+  agent     Agent         @relation(fields: [agentId], references: [id])
+  card      Card          @relation(fields: [cardId], references: [id])
+  parentRun AgentRun?     @relation("RunHierarchy", fields: [parentRunId], references: [id])
+  childRuns AgentRun[]    @relation("RunHierarchy")
   logs      AgentRunLog[]
 }
 
@@ -279,4 +282,64 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Simulation {
+  id           String   @id @default(cuid())
+  projectId    String
+  status       String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  rounds       Int      @default(10)
+  currentRound Int      @default(0)
+  results      Json?
+  predictions  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actions SimulationAction[]
+}
+
+model SimulationAction {
+  id           String   @id @default(cuid())
+  simulationId String
+  round        Int
+  agentName    String
+  agentRole    String
+  actionType   String // PICK_TASK, COMPLETE_TASK, REQUEST_REVIEW, SKIP, BLOCKED
+  targetCard   String?
+  reasoning    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+}
+
+model GraphNode {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  type      String
+  summary   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outEdges GraphEdge[] @relation("EdgeSource")
+  inEdges  GraphEdge[] @relation("EdgeTarget")
+}
+
+model GraphEdge {
+  id        String   @id @default(cuid())
+  projectId String
+  sourceId  String
+  targetId  String
+  relation  String
+  weight    Float    @default(1.0)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  source  GraphNode @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target  GraphNode @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
 }
