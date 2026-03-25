@@ -15,6 +15,18 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -23,11 +35,32 @@ services:
       - "3002:3000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kanban_flux
+      REDIS_URL: redis://redis:6379
       NEXTAUTH_SECRET: kanban-flux-docker-secret-change-in-production
       NEXTAUTH_URL: http://localhost:3002
+      AGENT_ENCRYPTION_KEY: ${AGENT_ENCRYPTION_KEY}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kanban_flux
+      REDIS_URL: redis://redis:6379
+      AGENT_ENCRYPTION_KEY: ${AGENT_ENCRYPTION_KEY}
+      WORKER_CONCURRENCY: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:

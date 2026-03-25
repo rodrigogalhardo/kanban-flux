@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { RecentBoards } from "@/components/dashboard/recent-boards";
 import { AllBoardsTable } from "@/components/dashboard/all-boards-table";
 import { CreateBoardDialog } from "@/components/dashboard/create-board-dialog";
+import { AgentActivity } from "@/components/dashboard/agent-activity";
 import type { BoardSummary } from "@/types";
 
 const DEFAULT_WORKSPACE_ID = "default-workspace";
@@ -43,6 +44,7 @@ export default function DashboardPage() {
           onCreateBoard={() => setShowCreateDialog(true)}
         />
         <AllBoardsTable boards={boards} />
+        <AgentActivity />
         <CreateBoardDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}

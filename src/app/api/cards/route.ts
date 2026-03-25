@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       labels: { include: { label: true } },
-      members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+      members: { include: { user: { select: { id: true, name: true, avatar: true, isAgent: true } } } },
       checklists: { include: { items: true } },
       comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
     },

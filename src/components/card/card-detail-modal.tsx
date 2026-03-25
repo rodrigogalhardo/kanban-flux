@@ -25,6 +25,8 @@ import { MembersSection } from "./members";
 import { LabelPicker } from "./label-picker";
 import { MemberPicker } from "./member-picker";
 import { DueDatePicker } from "./due-date-picker";
+import { AgentRunTrigger } from "@/components/agents/agent-run-trigger";
+import { AgentRunStatus } from "@/components/agents/agent-run-status";
 import type { CardWithDetails } from "@/types";
 
 export function CardDetailModal({
@@ -264,6 +266,21 @@ export function CardDetailModal({
                 </Button>
               </div>
             )}
+
+            <Separator className="my-3" />
+
+            {/* AI Agent Section */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                AI Agent
+              </p>
+              <AgentRunTrigger
+                cardId={card.id}
+                members={card.members}
+                onRunStarted={refreshCard}
+              />
+              <AgentRunStatus cardId={card.id} />
+            </div>
 
             <Separator className="my-3" />
 

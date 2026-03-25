@@ -1,7 +1,7 @@
 "use client";
 
 import { Draggable } from "@hello-pangea/dnd";
-import { Calendar, CheckSquare } from "lucide-react";
+import { Bot, Calendar, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDate, getInitials } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function KanbanCard({
     (sum, cl) => sum + cl.items.filter((item) => item.completed).length,
     0
   );
+  const hasAgent = card.members?.some((m) => m.user.isAgent);
 
   return (
     <Draggable draggableId={card.id} index={index}>
@@ -77,6 +78,12 @@ export function KanbanCard({
                   <span>
                     {completedItems}/{totalItems}
                   </span>
+                </div>
+              )}
+              {hasAgent && (
+                <div className="flex items-center gap-1 text-xs text-blue-500">
+                  <Bot className="h-3.5 w-3.5" />
+                  <span>AI</span>
                 </div>
               )}
             </div>

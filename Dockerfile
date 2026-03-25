@@ -41,6 +41,27 @@ COPY --from=builder /app/node_modules/@esbuild ./node_modules/@esbuild
 COPY --from=builder /app/node_modules/get-tsconfig ./node_modules/get-tsconfig
 COPY --from=builder /app/node_modules/resolve-pkg-maps ./node_modules/resolve-pkg-maps
 
+# Copy BullMQ and Redis dependencies for queue module
+COPY --from=builder /app/node_modules/bullmq ./node_modules/bullmq
+COPY --from=builder /app/node_modules/ioredis ./node_modules/ioredis
+COPY --from=builder /app/node_modules/denque ./node_modules/denque
+COPY --from=builder /app/node_modules/cluster-key-slot ./node_modules/cluster-key-slot
+COPY --from=builder /app/node_modules/standard-as-callback ./node_modules/standard-as-callback
+COPY --from=builder /app/node_modules/msgpackr ./node_modules/msgpackr
+COPY --from=builder /app/node_modules/msgpackr-extract ./node_modules/msgpackr-extract
+COPY --from=builder /app/node_modules/node-gyp-build-optional-packages ./node_modules/node-gyp-build-optional-packages
+COPY --from=builder /app/node_modules/cron-parser ./node_modules/cron-parser
+COPY --from=builder /app/node_modules/luxon ./node_modules/luxon
+COPY --from=builder /app/node_modules/glob ./node_modules/glob
+
+# Copy AI provider SDKs
+COPY --from=builder /app/node_modules/@google ./node_modules/@google
+COPY --from=builder /app/node_modules/@anthropic-ai ./node_modules/@anthropic-ai
+COPY --from=builder /app/node_modules/openai ./node_modules/openai
+
+# Copy crypto dependencies
+COPY --from=builder /app/node_modules/@types ./node_modules/@types
+
 # Copy entrypoint script and fix line endings
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh

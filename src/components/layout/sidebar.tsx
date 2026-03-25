@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Briefcase,
+  FolderGit2,
   Columns3,
   Calendar,
   Users,
+  Bot,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -17,10 +19,12 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Project Space", icon: Briefcase, href: "/project-space" },
+  { label: "Projects", icon: FolderGit2, href: "/projects" },
   { label: "Workspace", icon: LayoutDashboard, href: "/workspace" },
-  { label: "Boards", icon: Columns3, href: "/" },
+  { label: "Boards", icon: Columns3, href: "/boards" },
   { label: "Calendar", icon: Calendar, href: "/calendar" },
   { label: "Members", icon: Users, href: "/team" },
+  { label: "AI Agents", icon: Bot, href: "/agents" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 

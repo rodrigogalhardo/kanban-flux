@@ -13,11 +13,14 @@ model User {
   email     String   @unique
   password  String?
   avatar    String?
+  isAgent   Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  workspaces WorkspaceMember[]
-  cards      CardMember[]
-  comments   Comment[]
+  workspaces    WorkspaceMember[]
+  cards         CardMember[]
+  comments      Comment[]
+  agent         Agent?
+  notifications Notification[]
 }
 
 model Workspace {
@@ -25,8 +28,10 @@ model Workspace {
   name      String
   createdAt DateTime @default(now())
 
-  boards  Board[]
-  members WorkspaceMember[]
+  boards   Board[]
+  members  WorkspaceMember[]
+  apiKeys  AgentApiKey[]
+  projects Project[]
 }
 
 model WorkspaceMember {
@@ -54,10 +59,12 @@ model Board {
   coverImage  String?
   status      BoardStatus @default(ACTIVE)
   workspaceId String
+  projectId   String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
+  project   Project?  @relation(fields: [projectId], references: [id])
   columns   Column[]
 }
 
@@ -65,6 +72,27 @@ enum BoardStatus {
   ACTIVE
   ARCHIVED
   PAUSED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  githubRepo  String?
+  githubUrl   String?
+  status      ProjectStatus @default(ACTIVE)
+  workspaceId String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  boards    Board[]
 }
 
 model Column {
@@ -92,6 +120,7 @@ model Card {
   members    CardMember[]
   checklists Checklist[]
   comments   Comment[]
+  agentRuns  AgentRun[]
 }
 
 model Label {
@@ -149,4 +178,105 @@ model Comment {
 
   user User @relation(fields: [userId], references: [id])
   card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+enum AgentStatus {
+  IDLE
+  WORKING
+  PAUSED
+  ERROR
+}
+
+enum AgentProvider {
+  CLAUDE
+  GEMINI
+  OPENAI
+  CUSTOM
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Agent {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  provider      AgentProvider
+  model         String
+  role          String
+  systemPrompt  String?
+  capabilities  String[]
+  status        AgentStatus   @default(IDLE)
+  apiKeyId      String?
+  maxConcurrent Int           @default(1)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs     AgentRun[]
+  apiKey   AgentApiKey? @relation(fields: [apiKeyId], references: [id])
+}
+
+model AgentApiKey {
+  id           String        @id @default(cuid())
+  provider     AgentProvider
+  encryptedKey String
+  iv           String
+  label        String
+  workspaceId  String
+  createdAt    DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  agents    Agent[]
+}
+
+model AgentRun {
+  id          String    @id @default(cuid())
+  agentId     String
+  cardId      String
+  parentRunId String?
+  status      RunStatus @default(QUEUED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+  tokenUsage  Int?
+  cost        Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  agent     Agent       @relation(fields: [agentId], references: [id])
+  card      Card        @relation(fields: [cardId], references: [id])
+  parentRun AgentRun?   @relation("RunHierarchy", fields: [parentRunId], references: [id])
+  childRuns AgentRun[]  @relation("RunHierarchy")
+  logs      AgentRunLog[]
+}
+
+model AgentRunLog {
+  id        String   @id @default(cuid())
+  runId     String
+  level     String   @default("info")
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  cardId    String?
+  boardId   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

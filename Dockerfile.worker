@@ -1,0 +1,22 @@
+FROM node:18-slim AS deps
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM node:18-slim AS runner
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copy all node_modules (worker needs prisma, bullmq, ioredis, AI SDKs)
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source files (worker needs src/lib/agents/*, src/lib/prisma.ts, src/lib/redis.ts)
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Run the worker using tsx
+CMD ["npx", "tsx", "src/worker.ts"]

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const members = await prisma.workspaceMember.findMany({
     where,
     include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
+      user: { select: { id: true, name: true, email: true, avatar: true, isAgent: true } },
     },
   });
   return NextResponse.json(members);

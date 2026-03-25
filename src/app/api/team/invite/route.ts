@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { email, role, workspaceId } = body;
+  const { email, role, workspaceId, name } = body;
 
   let user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     user = await prisma.user.create({
       data: {
-        name: email.split("@")[0],
+        name: name || email.split("@")[0],
         email,
       },
     });

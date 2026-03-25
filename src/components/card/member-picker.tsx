@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { Users, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,6 +14,7 @@ interface TeamMember {
     name: string;
     email: string;
     avatar: string | null;
+    isAgent?: boolean;
   };
 }
 
@@ -105,6 +106,12 @@ export function MemberPicker({
                     </AvatarFallback>
                   </Avatar>
                   <span className="truncate text-sm">{member.user.name}</span>
+                  {member.user.isAgent && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-primary">
+                      <Bot className="h-3 w-3" />
+                      (AI)
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

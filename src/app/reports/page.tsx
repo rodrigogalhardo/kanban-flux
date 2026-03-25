@@ -15,6 +15,11 @@ import {
   Users,
   AlertCircle,
   Clock,
+  Bot,
+  CheckCircle2,
+  Zap,
+  DollarSign,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +36,35 @@ interface ReportData {
     title: string;
     updatedAt: string;
     column: { title: string; board: { name: string } };
+  }[];
+}
+
+interface AgentStatsData {
+  totalAgents: number;
+  activeAgents: number;
+  totalRuns: number;
+  completedRuns: number;
+  failedRuns: number;
+  totalTokens: number;
+  totalCost: number;
+  avgRunTime: number;
+  runsByAgent: {
+    role: string;
+    name: string;
+    completed: number;
+    failed: number;
+    tokens: number;
+  }[];
+  runsByStatus: Record<string, number>;
+  recentRuns: {
+    id: string;
+    agentRole: string;
+    agentName: string;
+    cardTitle: string;
+    status: string;
+    tokenUsage: number;
+    cost: number;
+    completedAt: string;
   }[];
 }
 
@@ -67,16 +101,47 @@ function getStatusBadgeStyle(status: string) {
   };
 }
 
+const AGENT_ROLE_COLORS: Record<string, string> = {
+  analyst: "#0052CC",
+  frontend: "#36B37E",
+  backend: "#6554C0",
+  designer: "#FF5630",
+  tester: "#00B8D9",
+  devops: "#FFAB00",
+};
+
+function getAgentRoleColor(role: string): string {
+  return AGENT_ROLE_COLORS[role.toLowerCase()] || "#42526E";
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
 export default function ReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
+  const [agentStats, setAgentStats] = useState<AgentStatsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/reports");
-      const json = await res.json();
-      setData(json);
+      const [reportRes, agentRes] = await Promise.all([
+        fetch("/api/reports"),
+        fetch("/api/agents/stats"),
+      ]);
+      const reportJson = await reportRes.json();
+      setData(reportJson);
+      if (agentRes.ok) {
+        const agentJson = await agentRes.json();
+        setAgentStats(agentJson);
+      }
     } catch {
       setData(null);
     } finally {
@@ -331,6 +396,221 @@ export default function ReportsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* AI Agent Metrics */}
+            {agentStats && (
+              <>
+                <div>
+                  <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2 mb-4">
+                    <Bot className="h-5 w-5 text-[#6554C0]" />
+                    AI Agents
+                  </h2>
+                </div>
+
+                {/* Agent Stat Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <StatCard
+                    icon={Bot}
+                    label="Total Agents"
+                    value={agentStats.totalAgents}
+                    color="#6554C0"
+                  />
+                  <StatCard
+                    icon={CheckCircle2}
+                    label="Completed Runs"
+                    value={agentStats.completedRuns}
+                    color="#36B37E"
+                  />
+                  <StatCard
+                    icon={Zap}
+                    label="Total Tokens"
+                    value={agentStats.totalTokens.toLocaleString()}
+                    color="#FFAB00"
+                  />
+                  <StatCard
+                    icon={DollarSign}
+                    label="Total Cost"
+                    value={`$${agentStats.totalCost.toFixed(2)}`}
+                    color="#0052CC"
+                  />
+                </div>
+
+                {/* Two-column: Runs by Agent + Recent Agent Runs */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Runs by Agent */}
+                  <Card className="bg-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-neutral-900">
+                        <BarChart3 className="h-5 w-5 text-[#6554C0]" />
+                        Runs by Agent
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {agentStats.runsByAgent.length === 0 ? (
+                        <p className="text-secondary text-sm py-4">
+                          No agent runs recorded yet.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          {agentStats.runsByAgent.map((agent) => {
+                            const total = agent.completed + agent.failed;
+                            const maxRuns = Math.max(
+                              ...agentStats.runsByAgent.map(
+                                (a) => a.completed + a.failed
+                              ),
+                              1
+                            );
+                            const widthPercent = (total / maxRuns) * 100;
+                            const roleColor = getAgentRoleColor(agent.role);
+
+                            return (
+                              <div key={agent.role} className="space-y-1.5">
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-neutral-700">
+                                      {agent.name}
+                                    </span>
+                                    <span
+                                      className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-medium"
+                                      style={{
+                                        backgroundColor: `${roleColor}18`,
+                                        color: roleColor,
+                                        borderColor: `${roleColor}30`,
+                                      }}
+                                    >
+                                      {agent.role}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-[#36B37E] font-medium">
+                                      {agent.completed} done
+                                    </span>
+                                    {agent.failed > 0 && (
+                                      <span className="text-[#FF5630] font-medium">
+                                        {agent.failed} failed
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="h-3 w-full rounded-full bg-[#F4F5F7]">
+                                  <div
+                                    className="h-3 rounded-full transition-all duration-500"
+                                    style={{
+                                      width: `${widthPercent}%`,
+                                      backgroundColor: roleColor,
+                                      minWidth: total > 0 ? "12px" : "0px",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Agent Runs */}
+                  <Card className="bg-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-neutral-900">
+                        <Clock className="h-5 w-5 text-[#6554C0]" />
+                        Recent Agent Runs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {agentStats.recentRuns.length === 0 ? (
+                        <p className="text-secondary text-sm py-4">
+                          No recent agent runs to show.
+                        </p>
+                      ) : (
+                        <div className="divide-y divide-[#F4F5F7]">
+                          {agentStats.recentRuns.map((run, index) => (
+                            <div
+                              key={run.id}
+                              className={cn(
+                                "flex items-center justify-between py-3",
+                                index === 0 && "pt-0"
+                              )}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                  style={{
+                                    backgroundColor:
+                                      run.status === "COMPLETED"
+                                        ? "#36B37E18"
+                                        : "#FF563018",
+                                  }}
+                                >
+                                  {run.status === "COMPLETED" ? (
+                                    <CheckCircle2 className="h-4 w-4 text-[#36B37E]" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-[#FF5630]" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-neutral-900 truncate">
+                                    {run.agentName}
+                                  </p>
+                                  <p className="text-xs text-secondary truncate">
+                                    {run.cardTitle}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0 ml-4">
+                                {run.tokenUsage > 0 && (
+                                  <span className="flex items-center gap-1 text-xs text-secondary">
+                                    <Zap className="h-3 w-3" />
+                                    {run.tokenUsage.toLocaleString()}
+                                  </span>
+                                )}
+                                <span className="text-xs text-secondary whitespace-nowrap">
+                                  {timeAgo(run.completedAt)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Avg run time summary */}
+                {agentStats.avgRunTime > 0 && (
+                  <div className="rounded-xl border bg-white p-4">
+                    <div className="flex items-center gap-3 text-sm text-secondary">
+                      <Clock className="h-4 w-4 text-[#42526E]" />
+                      <span>
+                        Average run time:{" "}
+                        <span className="font-semibold text-neutral-900">
+                          {formatDuration(agentStats.avgRunTime)}
+                        </span>
+                      </span>
+                      <span className="mx-2 text-neutral-300">|</span>
+                      <span>
+                        Total runs:{" "}
+                        <span className="font-semibold text-neutral-900">
+                          {agentStats.totalRuns}
+                        </span>
+                      </span>
+                      {agentStats.failedRuns > 0 && (
+                        <>
+                          <span className="mx-2 text-neutral-300">|</span>
+                          <span>
+                            Failed:{" "}
+                            <span className="font-semibold text-[#FF5630]">
+                              {agentStats.failedRuns}
+                            </span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
       </div>

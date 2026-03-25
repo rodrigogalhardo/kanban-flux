@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { getInitials } from "@/lib/utils";
 import type { CommentWithUser } from "@/types";
+
+interface CurrentUser {
+  id: string;
+  name: string;
+}
 
 export function CommentsSection({
   comments,
@@ -19,21 +24,53 @@ export function CommentsSection({
 }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      try {
+        const res = await fetch("/api/team");
+        if (res.ok) {
+          const members = await res.json();
+          if (members.length > 0) {
+            const firstHuman = members.find(
+              (m: { user: { isAgent?: boolean } }) => !m.user.isAgent
+            );
+            const member = firstHuman || members[0];
+            setCurrentUser({ id: member.user.id, name: member.user.name });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch current user:", err);
+      }
+    }
+    fetchCurrentUser();
+  }, []);
 
   async function handleSubmit() {
-    if (!text.trim()) return;
+    if (!text.trim() || !currentUser) return;
     setLoading(true);
+    setError(null);
     try {
-      await fetch(`/api/cards/${cardId}/comments`, {
+      const res = await fetch(`/api/cards/${cardId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: text.trim(),
-          userId: "demo-user",
+          userId: currentUser.id,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to post comment");
+      }
       setText("");
+      setError(null);
       onUpdate();
+    } catch (err) {
+      console.error("Failed to post comment:", err);
+      setError(err instanceof Error ? err.message : "Failed to post comment");
     } finally {
       setLoading(false);
     }
@@ -59,7 +96,7 @@ export function CommentsSection({
       <div className="flex gap-3">
         <Avatar className="h-8 w-8 flex-shrink-0">
           <AvatarFallback className="bg-primary/10 text-xs text-primary">
-            DU
+            {currentUser ? getInitials(currentUser.name) : "?"}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
@@ -70,11 +107,14 @@ export function CommentsSection({
             rows={2}
             className="text-sm resize-none"
           />
+          {error && (
+            <p className="mt-1 text-xs text-red-500">{error}</p>
+          )}
           <div className="mt-2 flex justify-end">
             <Button
               size="sm"
               onClick={handleSubmit}
-              disabled={loading || !text.trim()}
+              disabled={loading || !text.trim() || !currentUser}
               className="bg-primary hover:bg-primary-600"
             >
               <Send className="mr-1.5 h-3 w-3" />

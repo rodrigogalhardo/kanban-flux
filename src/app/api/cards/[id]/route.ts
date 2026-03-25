@@ -9,7 +9,7 @@ export async function GET(
     where: { id: params.id },
     include: {
       labels: { include: { label: true } },
-      members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+      members: { include: { user: { select: { id: true, name: true, avatar: true, isAgent: true } } } },
       checklists: { include: { items: true } },
       comments: {
         include: { user: { select: { id: true, name: true, avatar: true } } },
@@ -40,7 +40,7 @@ export async function PATCH(
     data,
     include: {
       labels: { include: { label: true } },
-      members: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+      members: { include: { user: { select: { id: true, name: true, avatar: true, isAgent: true } } } },
       checklists: { include: { items: true } },
       comments: {
         include: { user: { select: { id: true, name: true, avatar: true } } },

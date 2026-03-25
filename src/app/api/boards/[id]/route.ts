@@ -17,7 +17,7 @@ export async function GET(
               labels: { include: { label: true } },
               members: {
                 include: {
-                  user: { select: { id: true, name: true, avatar: true } }
+                  user: { select: { id: true, name: true, avatar: true, isAgent: true } }
                 }
               },
               checklists: { include: { items: true } },
