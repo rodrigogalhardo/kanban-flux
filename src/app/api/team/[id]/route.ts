@@ -7,16 +7,26 @@ export async function PATCH(
 ) {
   const body = await req.json();
 
-  const memberData: Record<string, unknown> = {};
-  if (body.role) memberData.role = body.role;
-
-  const member = await prisma.workspaceMember.update({
+  // Fetch the member first (always needed)
+  const member = await prisma.workspaceMember.findUnique({
     where: { id: params.id },
-    data: memberData,
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true } },
     },
   });
+
+  if (!member) {
+    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+
+  // Update role if provided
+  if (body.role) {
+    await prisma.workspaceMember.update({
+      where: { id: params.id },
+      data: { role: body.role },
+    });
+    member.role = body.role;
+  }
 
   // Allow updating user details (name, avatar) through the same endpoint
   if (body.userName || body.userAvatar) {
