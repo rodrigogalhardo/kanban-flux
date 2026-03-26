@@ -124,6 +124,8 @@ model Card {
   checklists Checklist[]
   comments   Comment[]
   agentRuns  AgentRun[]
+  dependencies  CardDependency[] @relation("CardDependencies")
+  dependedOnBy  CardDependency[] @relation("CardDependedOn")
 }
 
 model Label {
@@ -388,4 +390,16 @@ model TeamTemplate {
   usageCount  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model CardDependency {
+  id          String @id @default(cuid())
+  cardId      String
+  dependsOnId String
+  type        String @default("DEPENDS_ON")
+
+  card      Card @relation("CardDependencies", fields: [cardId], references: [id], onDelete: Cascade)
+  dependsOn Card @relation("CardDependedOn", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, dependsOnId])
 }

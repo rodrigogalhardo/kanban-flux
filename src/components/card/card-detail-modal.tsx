@@ -28,16 +28,19 @@ import { DueDatePicker } from "./due-date-picker";
 import { AgentRunTrigger } from "@/components/agents/agent-run-trigger";
 import { AgentRunStatus } from "@/components/agents/agent-run-status";
 import { Markdown } from "@/components/ui/markdown";
+import { DependenciesSection } from "./dependencies";
 import type { CardWithDetails } from "@/types";
 
 export function CardDetailModal({
   card: initialCard,
   open,
   onOpenChange,
+  boardId,
 }: {
   card: CardWithDetails;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  boardId: string;
 }) {
   const [card, setCard] = useState(initialCard);
   const [title, setTitle] = useState(card.title);
@@ -198,6 +201,10 @@ export function CardDetailModal({
                 </div>
               )}
             </div>
+
+            {/* Dependencies */}
+            <Separator />
+            <DependenciesSection cardId={card.id} boardId={boardId} />
 
             {/* Checklists */}
             {card.checklists.length > 0 && (

@@ -105,6 +105,7 @@ export function BoardView({
               refreshBoard();
             }
           }}
+          boardId={board.id}
         />
       )}
     </div>

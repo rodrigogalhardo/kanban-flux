@@ -56,7 +56,8 @@ export type AgentActionType =
   | "git_branch"
   | "setup_cicd"
   | "save_memory"
-  | "recall_memory";
+  | "recall_memory"
+  | "add_dependency";
 
 export interface AgentAction {
   type: AgentActionType;
@@ -262,6 +263,19 @@ export const AGENT_TOOLS_SCHEMA = [
         query: { type: "string", description: "What to search for in memory" },
       },
       required: ["query"],
+    },
+  },
+  {
+    name: "add_dependency",
+    description: "Add a dependency between two cards. Use this when tasks are related or one depends on another.",
+    parameters: {
+      type: "object",
+      properties: {
+        cardId: { type: "string", description: "The card that depends on another" },
+        dependsOnId: { type: "string", description: "The card it depends on" },
+        type: { type: "string", description: "Dependency type: DEPENDS_ON, BLOCKS, or RELATED" },
+      },
+      required: ["cardId", "dependsOnId"],
     },
   },
 ];

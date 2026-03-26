@@ -257,6 +257,21 @@ async function applyAction(action: AgentAction, cardId: string, agentUserId: str
       break;
     }
 
+    case "add_dependency": {
+      const { cardId: depCardId, dependsOnId, type: depType } = action.payload as {
+        cardId: string;
+        dependsOnId: string;
+        type?: string;
+      };
+      await prisma.cardDependency.upsert({
+        where: { cardId_dependsOnId: { cardId: depCardId, dependsOnId } },
+        create: { cardId: depCardId, dependsOnId, type: depType || "DEPENDS_ON" },
+        update: { type: depType || "DEPENDS_ON" },
+      });
+      await logRun(runId, "info", `Added dependency: card depends on ${dependsOnId} (${depType || "DEPENDS_ON"})`);
+      break;
+    }
+
     default:
       await logRun(runId, "warn", `Unknown action type: ${action.type}`);
   }
