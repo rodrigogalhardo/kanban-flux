@@ -34,3 +34,12 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@keyframes agent-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.2), 0 0 20px rgba(74, 222, 128, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), 0 0 30px rgba(74, 222, 128, 0.2);
+  }
+}

@@ -290,11 +290,16 @@ function CreateProjectDialog({
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState("");
   const [briefingFilename, setBriefingFilename] = useState("");
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+    setShowDisclaimer(true);
+  }
 
+  async function handleConfirmCreate() {
+    setShowDisclaimer(false);
     setLoading(true);
     try {
       await fetch("/api/projects", {
@@ -320,7 +325,7 @@ function CreateProjectDialog({
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-neutral-900">
               Project Name
@@ -398,6 +403,92 @@ function CreateProjectDialog({
           </div>
         </form>
       </DialogContent>
+
+      {/* Disclaimer Modal */}
+      <Dialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              How AI Project Creation Works
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-secondary">
+            <p className="text-neutral-900 font-medium">
+              When you create this project, our AI team will automatically set everything up:
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</div>
+                <div>
+                  <p className="font-medium text-neutral-900">Project & Repository</p>
+                  <p>A board with workflow columns (Todo, Brainstorming, In Progress, QA, Bug, Done) {createRepo ? "and a GitHub repository in the kanban-flux org" : ""} will be created.</p>
+                </div>
+              </div>
+
+              {briefing && (
+                <>
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</div>
+                    <div>
+                      <p className="font-medium text-neutral-900">Analyst Reads the Briefing</p>
+                      <p>The <strong>Analyst Agent</strong> will read your briefing document (<em>{briefingFilename}</em>) and analyze requirements, scope, and deliverables.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</div>
+                    <div>
+                      <p className="font-medium text-neutral-900">Task Cards Created</p>
+                      <p>The Analyst will create task cards for each deliverable, with detailed descriptions and acceptance criteria.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">4</div>
+                    <div>
+                      <p className="font-medium text-neutral-900">Team Allocation</p>
+                      <p>Each card will be assigned to the right agent (Frontend, Backend, QA, Architect, etc.) based on the task requirements. The team is allocated automatically according to the project needs.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">5</div>
+                    <div>
+                      <p className="font-medium text-neutral-900">Autonomous Execution</p>
+                      <p>Agents work autonomously: devs move cards to QA when done, QA validates and moves to Done or Bug. You monitor progress and intervene when needed (HITL).</p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!briefing && (
+                <div className="flex gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">!</div>
+                  <div>
+                    <p className="font-medium text-neutral-900">No Briefing Uploaded</p>
+                    <p>Without a briefing document, the board will be created empty. You can add tasks manually or upload a briefing later.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={() => setShowDisclaimer(false)}>
+                Go Back
+              </Button>
+              <Button
+                onClick={handleConfirmCreate}
+                disabled={loading}
+                className="bg-primary hover:bg-primary-600"
+              >
+                {loading ? "Creating..." : "Confirm & Create Project"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
