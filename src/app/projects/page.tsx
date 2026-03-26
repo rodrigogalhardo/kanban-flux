@@ -288,6 +288,8 @@ function CreateProjectDialog({
   const [description, setDescription] = useState("");
   const [createRepo, setCreateRepo] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [briefing, setBriefing] = useState("");
+  const [briefingFilename, setBriefingFilename] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -298,11 +300,13 @@ function CreateProjectDialog({
       await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, createRepo }),
+        body: JSON.stringify({ name, description, createRepo, briefing }),
       });
       setName("");
       setDescription("");
       setCreateRepo(false);
+      setBriefing("");
+      setBriefingFilename("");
       onOpenChange(false);
       onProjectCreated();
     } finally {
@@ -338,6 +342,30 @@ function CreateProjectDialog({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-neutral-900">
+              Project Briefing
+            </label>
+            <p className="text-xs text-secondary mb-2">
+              Upload a .txt, .md or .pdf file with the project requirements. The Analyst agent will automatically create tasks from it.
+            </p>
+            <input
+              type="file"
+              accept=".txt,.md,.pdf"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const text = await file.text();
+                  setBriefing(text);
+                  setBriefingFilename(file.name);
+                }
+              }}
+              className="text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+            />
+            {briefingFilename && (
+              <p className="mt-1 text-xs text-green-600">&#10003; {briefingFilename} loaded</p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Checkbox

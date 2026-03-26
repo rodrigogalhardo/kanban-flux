@@ -64,11 +64,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, description, workspaceId, createRepo } = body as {
+  const { name, description, workspaceId, createRepo, briefing } = body as {
     name: string;
     description?: string;
     workspaceId?: string;
     createRepo?: boolean;
+    briefing?: string;
   };
 
   let githubRepo: string | null = null;
@@ -110,6 +111,79 @@ export async function POST(req: NextRequest) {
       workspaceId: workspaceId || DEFAULT_WORKSPACE_ID,
     },
   });
+
+  // If briefing is provided, create board with columns and trigger Analyst agent
+  if (briefing) {
+    try {
+      // Create board linked to project
+      const board = await prisma.board.create({
+        data: {
+          name: `${name} - Sprint 1`,
+          description: `Main development board for ${name}`,
+          workspaceId: workspaceId || DEFAULT_WORKSPACE_ID,
+          projectId: project.id,
+        },
+      });
+
+      // Create default columns
+      const defaultColumns = ["Todo", "Brainstorming", "In Progress", "QA", "Bug", "Done"];
+      const columns = [];
+      for (let i = 0; i < defaultColumns.length; i++) {
+        const col = await prisma.column.create({
+          data: { title: defaultColumns[i], position: i, boardId: board.id },
+        });
+        columns.push(col);
+      }
+
+      // Create briefing card in Todo column
+      const todoCol = columns[0];
+      const briefingCard = await prisma.card.create({
+        data: {
+          title: `Project Briefing & Analysis: ${name}`,
+          description: briefing,
+          columnId: todoCol.id,
+          position: 0,
+        },
+      });
+
+      // Find analyst agent
+      const analyst = await prisma.agent.findFirst({
+        where: { role: "analyst" },
+      });
+
+      if (analyst) {
+        // Assign analyst to the card
+        await prisma.cardMember.create({
+          data: { cardId: briefingCard.id, userId: analyst.userId },
+        });
+
+        // Create and trigger agent run
+        const run = await prisma.agentRun.create({
+          data: {
+            agentId: analyst.id,
+            cardId: briefingCard.id,
+            status: "QUEUED",
+          },
+        });
+
+        await prisma.agent.update({
+          where: { id: analyst.id },
+          data: { status: "WORKING" },
+        });
+
+        // Enqueue for processing
+        try {
+          const { enqueueAgentRun } = await import("@/lib/agents/queue");
+          await enqueueAgentRun(run.id);
+        } catch (e) {
+          console.error("Failed to enqueue analyst run:", e);
+        }
+      }
+    } catch (briefingError) {
+      console.error("Failed to setup briefing board:", briefingError);
+      // Non-blocking - project creation still succeeds
+    }
+  }
 
   return NextResponse.json(project, { status: 201 });
 }

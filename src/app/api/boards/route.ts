@@ -33,11 +33,12 @@ export async function POST(req: NextRequest) {
       workspaceId: body.workspaceId,
       columns: {
         create: [
-          { title: "To Do", position: 0 },
-          { title: "In Progress", position: 1 },
-          { title: "QA", position: 2 },
-          { title: "Done", position: 3 },
+          { title: "Todo", position: 0 },
+          { title: "Brainstorming", position: 1 },
+          { title: "In Progress", position: 2 },
+          { title: "QA", position: 3 },
           { title: "Bug", position: 4 },
+          { title: "Done", position: 5 },
         ],
       },
     },

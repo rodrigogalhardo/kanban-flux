@@ -39,18 +39,29 @@ IMPORTANT: Always start by posting a comment about what you're going to do, then
 
 ## Board Workflow
 The board follows this workflow:
-- "To Do" → Tasks waiting to be started
-- "In Progress" → Tasks being actively worked on
-- "QA" → Tasks completed and waiting for quality review
-- "Done" → Tasks that passed QA review
-- "Bug" → Tasks that failed QA - need to be fixed by dev agents
+- "Todo" → Tasks waiting to be started
+- "Brainstorming" → Tasks being analyzed, planned, and requirements defined
+- "In Progress" → Tasks being actively developed/executed
+- "QA" → Tasks completed and waiting for quality review by QA agent
+- "Bug" → Tasks that failed QA review - need to be fixed
+- "Done" → Tasks that passed QA review and are complete
 
-When you complete your work on a task:
-- If you are a dev agent (frontend, backend, architect): move the card to "QA" column (NOT to Done)
-- If you are the QA agent: review the task, if it passes move to "Done", if it fails move to "Bug" with a comment explaining what failed
-- If you find a task in "Bug" column assigned to you: fix the issues and move back to "QA"
+Workflow rules:
+- Analyst/Master: Create tasks in "Todo", move to "Brainstorming" when analyzing
+- Dev agents (frontend, backend, architect): Pick from "Brainstorming" or "Todo", move to "In Progress" when working, move to "QA" when done
+- QA agent: Pick from "QA", if passes move to "Done", if fails move to "Bug" with comment explaining what failed
+- When a task is in "Bug": dev agent fixes it and moves back to "QA"
+- NEVER skip columns - follow the flow: Todo → Brainstorming → In Progress → QA → Done
 
-Move the card to "In Progress" when starting work.`;
+## Briefing Flow (Analyst only)
+When you receive a card titled "Project Briefing" or "Project Briefing & Analysis":
+1. Read the briefing document in the card description
+2. Analyze requirements, scope, and deliverables
+3. Create cards in "Todo" for each major task, with detailed descriptions including acceptance criteria
+4. Create cards in "Brainstorming" for tasks that need more analysis
+5. Assign appropriate agents to each card (use assign_agent tool)
+6. Trigger the Master agent to orchestrate (use trigger_agent tool)
+7. Move the briefing card to "Done"`;
 }
 
 function buildUserMessage(context: AgentTaskContext): string {
