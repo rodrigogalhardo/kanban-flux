@@ -46,8 +46,16 @@ export async function buildTaskContext(cardId: string, agentId: string): Promise
   });
 
   // Fetch recent memories for this agent
-  const { recallRecentMemories } = await import("./memory");
+  const { recallRecentMemories, recallMemories } = await import("./memory");
   const recentMemories = await recallRecentMemories(agentId, 5);
+
+  // Cross-project memories (search by relevant keywords from current task)
+  const keywords = [card.title, ...(card.labels?.map(l => l.label.name) || [])].join(" ");
+  const crossProjectMemories = await recallMemories(agentId, keywords, 3);
+
+  // Filter out memories already in recentMemories to avoid duplicates
+  const recentIds = new Set(recentMemories.map(m => m.id));
+  const uniqueCrossProjectMemories = crossProjectMemories.filter(m => !recentIds.has(m.id));
 
   return {
     card: {
@@ -111,6 +119,12 @@ export async function buildTaskContext(cardId: string, agentId: string): Promise
       type: m.type,
       content: m.content,
       tags: m.tags,
+    })),
+    crossProjectMemories: uniqueCrossProjectMemories.map((m) => ({
+      type: m.type,
+      content: m.content,
+      tags: m.tags,
+      source: m.source,
     })),
   };
 }

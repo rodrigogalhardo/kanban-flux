@@ -39,6 +39,7 @@ export interface AgentTaskContext {
     githubRepo: string | null;
   };
   memories?: { type: string; content: string; tags: string[] }[];
+  crossProjectMemories?: { type: string; content: string; tags: string[]; source: string | null }[];
 }
 
 export type AgentActionType =

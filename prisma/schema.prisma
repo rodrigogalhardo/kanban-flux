@@ -91,6 +91,7 @@ model Project {
   autoTrigger Boolean       @default(true)   // auto-trigger agents when cards move columns
   budget      Float?        // max budget in USD for AI token costs
   budgetUsed  Float         @default(0)  // current spend
+  publicToken String?       @unique    // random token for public access
   workspaceId String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

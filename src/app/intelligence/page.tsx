@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Brain, RefreshCw, Network, GitBranch, Zap, FileText, Loader2 } from "lucide-react";
+import { Brain, RefreshCw, Network, GitBranch, Zap, FileText, Loader2, Clock, TrendingUp, BarChart3 } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -36,6 +36,21 @@ interface ReportSection {
 interface ReportData {
   sections: ReportSection[];
   generatedAt: string;
+}
+
+interface TimelineData {
+  totalCards: number;
+  doneCards: number;
+  inProgressCards: number;
+  todoCards: number;
+  remainingCards: number;
+  completionRate: number;
+  avgRunTimeSeconds: number;
+  parallelism: number;
+  estimatedCompletionDate: string;
+  estimatedDaysRemaining: number;
+  velocityPerDay: number;
+  cardsByColumn: Record<string, number>;
 }
 
 interface GraphNode {
@@ -478,6 +493,8 @@ export default function IntelligencePage() {
   } | null>(null);
   const [report, setReport] = useState<ReportData | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [timeline, setTimeline] = useState<TimelineData | null>(null);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
 
   // Load projects
   useEffect(() => {
@@ -521,6 +538,29 @@ export default function IntelligencePage() {
   useEffect(() => {
     if (selectedProjectId) fetchGraph(selectedProjectId);
   }, [selectedProjectId, fetchGraph]);
+
+  // Fetch timeline when project changes
+  const fetchTimeline = useCallback(async (pid: string) => {
+    if (!pid) return;
+    setLoadingTimeline(true);
+    try {
+      const res = await fetch(`/api/intelligence/timeline?projectId=${encodeURIComponent(pid)}`);
+      const data = await res.json();
+      if (data && data.totalCards !== undefined) {
+        setTimeline(data);
+      } else {
+        setTimeline(null);
+      }
+    } catch {
+      setTimeline(null);
+    } finally {
+      setLoadingTimeline(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectId) fetchTimeline(selectedProjectId);
+  }, [selectedProjectId, fetchTimeline]);
 
   async function handleBuildGraph() {
     if (!selectedProjectId) return;
@@ -738,6 +778,118 @@ export default function IntelligencePage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Timeline Prediction */}
+        {(timeline || loadingTimeline) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                Timeline Prediction
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTimeline ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <span className="ml-3 text-sm text-secondary">Calculating timeline...</span>
+                </div>
+              ) : timeline ? (
+                <div className="space-y-4">
+                  {/* Progress bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-neutral-900">
+                        Project Progress
+                      </span>
+                      <span className="text-sm font-bold text-primary">
+                        {timeline.completionRate}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-primary h-3 rounded-full transition-all"
+                        style={{ width: `${timeline.completionRate}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1.5 text-xs text-secondary">
+                      <span>{timeline.doneCards} done</span>
+                      <span>{timeline.inProgressCards} in progress</span>
+                      <span>{timeline.todoCards} to do</span>
+                      <span>{timeline.totalCards} total</span>
+                    </div>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <span className="text-xs text-secondary">Est. Completion</span>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {new Date(timeline.estimatedCompletionDate).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-secondary">
+                        {timeline.estimatedDaysRemaining} days remaining
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <span className="text-xs text-secondary">Velocity</span>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {timeline.velocityPerDay} cards/day
+                      </p>
+                      <p className="text-xs text-secondary">
+                        Last 7 days
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <BarChart3 className="h-4 w-4 text-amber-500" />
+                        <span className="text-xs text-secondary">Avg Run Time</span>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {timeline.avgRunTimeSeconds}s
+                      </p>
+                      <p className="text-xs text-secondary">
+                        Per card
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap className="h-4 w-4 text-purple-500" />
+                        <span className="text-xs text-secondary">Parallelism</span>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {timeline.parallelism}x
+                      </p>
+                      <p className="text-xs text-secondary">
+                        Concurrent agents
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cards by column breakdown */}
+                  {Object.keys(timeline.cardsByColumn).length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 mb-2">Cards by Column</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(timeline.cardsByColumn).map(([col, count]) => (
+                          <Badge key={col} variant="secondary" className="text-xs">
+                            {col}: {count}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
         )}
 
         {/* Report Section */}

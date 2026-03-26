@@ -19,6 +19,7 @@ import {
   Users,
   Layers,
   Upload,
+  Mic,
 } from "lucide-react";
 
 export default function BriefingPage() {
@@ -128,6 +129,34 @@ export default function BriefingPage() {
               <label className="mb-1.5 block text-sm font-medium text-neutral-900">
                 Describe your project idea
               </label>
+              {/* Voice input */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mb-2"
+                onClick={() => {
+                  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+                    alert('Speech recognition not supported in your browser');
+                    return;
+                  }
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const w = window as Record<string, any>;
+                  const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition;
+                  const recognition = new SpeechRecognition();
+                  recognition.lang = 'pt-BR';
+                  recognition.interimResults = false;
+                  recognition.maxAlternatives = 1;
+                  recognition.onresult = (event: { results: { 0: { 0: { transcript: string } } } }) => {
+                    const transcript = event.results[0][0].transcript;
+                    setIdea(prev => prev + (prev ? ' ' : '') + transcript);
+                  };
+                  recognition.start();
+                }}
+              >
+                <Mic className="mr-1.5 h-3.5 w-3.5" />
+                Voice Input
+              </Button>
               <Textarea
                 placeholder="e.g., I want to build a SaaS platform that helps small restaurants manage online orders, reservations, and loyalty programs. It should have a customer-facing app and an admin dashboard..."
                 value={idea}
