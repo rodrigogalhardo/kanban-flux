@@ -60,7 +60,10 @@ export type AgentActionType =
   | "add_dependency"
   | "attach_file"
   | "review_pr"
-  | "update_changelog";
+  | "update_changelog"
+  | "request_help"
+  | "handoff"
+  | "escalate";
 
 export interface AgentAction {
   type: AgentActionType;
@@ -317,6 +320,46 @@ export const AGENT_TOOLS_SCHEMA = [
         entry: { type: "string", description: "Changelog entry in markdown" },
       },
       required: ["repo", "entry"],
+    },
+  },
+  {
+    name: "request_help",
+    description: "Request help from another agent by posting a comment on their card or creating a linked request. Use when you need input from another specialist.",
+    parameters: {
+      type: "object",
+      properties: {
+        targetRole: { type: "string", description: "Role of the agent to request help from (e.g., 'dba', 'architect', 'frontend')" },
+        request: { type: "string", description: "What you need help with" },
+        urgency: { type: "string", description: "low, medium, or high" },
+      },
+      required: ["targetRole", "request"],
+    },
+  },
+  {
+    name: "handoff",
+    description: "Create a structured handoff note when passing work to the next agent (e.g., dev to QA). Documents what was done, how to test, and any known issues.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "What was accomplished" },
+        testInstructions: { type: "string", description: "How to test/verify the work" },
+        knownIssues: { type: "string", description: "Any known issues or limitations" },
+        nextSteps: { type: "string", description: "Suggested next steps for the receiving agent" },
+      },
+      required: ["summary", "testInstructions"],
+    },
+  },
+  {
+    name: "escalate",
+    description: "Escalate an issue to the Master Orchestrator when you cannot resolve it yourself. The Master will decide how to proceed.",
+    parameters: {
+      type: "object",
+      properties: {
+        reason: { type: "string", description: "Why you're escalating" },
+        attempts: { type: "string", description: "What you already tried" },
+        suggestion: { type: "string", description: "Your suggested resolution" },
+      },
+      required: ["reason"],
     },
   },
 ];

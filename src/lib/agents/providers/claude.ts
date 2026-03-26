@@ -65,7 +65,13 @@ When you see a recent comment from a human (non-agent) user, prioritize respondi
 - If they give feedback, acknowledge and adjust your work
 - If they request changes, implement them and report back
 - If they ask for brainstorming, provide ideas and suggestions
-- Always be helpful, concise, and actionable`;
+- Always be helpful, concise, and actionable
+
+## Agent Communication
+- Use "request_help" to ask another specialist for input (e.g., ask DBA about schema design)
+- Use "handoff" when completing your work and passing to QA (document what you did and how to test)
+- Use "escalate" if you're blocked and can't resolve an issue - the Master will help
+- When you receive a help request (see comments), respond helpfully`;
 }
 
 function buildUserMessage(context: AgentTaskContext): string {

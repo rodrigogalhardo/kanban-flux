@@ -136,6 +136,7 @@ model Card {
   dependedOnBy  CardDependency[] @relation("CardDependedOn")
   attachments   CardAttachment[]
   sprints    SprintCard[]
+  history    CardHistory[]
 }
 
 model Label {
@@ -452,6 +453,29 @@ model CardDependency {
   dependsOn Card @relation("CardDependedOn", fields: [dependsOnId], references: [id], onDelete: Cascade)
 
   @@unique([cardId, dependsOnId])
+}
+
+model CardHistory {
+  id        String   @id @default(cuid())
+  cardId    String
+  userId    String?
+  action    String              // "created", "moved", "updated_description", "updated_title", "priority_changed", "agent_assigned", "attachment_added"
+  details   String?             // human-readable change description
+  metadata  Json?               // old/new values
+  createdAt DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model BoardTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  category    String              // "saas", "api", "landing-page", "mobile"
+  columns     Json                // ["Todo", "Brainstorming", "In Progress", "QA", "Bug", "Done"]
+  cardTemplates Json?             // [{title, description, labels, priority}]
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 model Webhook {

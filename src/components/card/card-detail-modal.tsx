@@ -31,6 +31,7 @@ import { AgentRunStatus } from "@/components/agents/agent-run-status";
 import { Markdown } from "@/components/ui/markdown";
 import { DependenciesSection } from "./dependencies";
 import { AttachmentsSection } from "./attachments";
+import { CardHistory } from "./card-history";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PriorityBadge } from "./priority-badge";
 import {
@@ -240,6 +241,10 @@ export function CardDetailModal({
               cardId={card.id}
               onUpdate={refreshCard}
             />
+
+            {/* History */}
+            <Separator />
+            <CardHistory cardId={card.id} />
           </div>
 
           {/* Right side - Actions */}

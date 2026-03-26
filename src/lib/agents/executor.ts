@@ -354,6 +354,100 @@ async function applyAction(action: AgentAction, cardId: string, agentUserId: str
       break;
     }
 
+    case "request_help": {
+      const { targetRole, request, urgency } = action.payload as { targetRole: string; request: string; urgency?: string };
+
+      // Find the target agent
+      const targetAgent = await prisma.agent.findFirst({
+        where: { role: targetRole },
+        include: { user: { select: { id: true, name: true } } },
+      });
+
+      if (targetAgent) {
+        // Post a comment on the current card mentioning the request
+        await prisma.comment.create({
+          data: {
+            text: `**Help Request to @${targetAgent.user.name}** (${urgency || "medium"} priority)\n\n${request}`,
+            userId: agentUserId,
+            cardId,
+          },
+        });
+
+        // Create a notification for the target agent's "user"
+        const { createNotification: createHelpNotification } = await import("@/lib/notifications");
+        await createHelpNotification({
+          userId: targetAgent.userId,
+          type: "help_request",
+          title: `Help requested by agent`,
+          message: request.substring(0, 100),
+          cardId,
+        });
+
+        await logRun(runId, "info", `Requested help from ${targetRole}: ${request.substring(0, 80)}`);
+      } else {
+        await logRun(runId, "warn", `No agent found with role: ${targetRole}`);
+      }
+      break;
+    }
+
+    case "handoff": {
+      const { summary, testInstructions, knownIssues, nextSteps } = action.payload as {
+        summary: string; testInstructions: string; knownIssues?: string; nextSteps?: string;
+      };
+
+      const handoffNote = `## Handoff Note\n\n### What was done\n${summary}\n\n### How to test\n${testInstructions}${knownIssues ? `\n\n### Known issues\n${knownIssues}` : ""}${nextSteps ? `\n\n### Next steps\n${nextSteps}` : ""}`;
+
+      await prisma.comment.create({
+        data: { text: handoffNote, userId: agentUserId, cardId },
+      });
+
+      await logRun(runId, "info", `Created handoff note: ${summary.substring(0, 80)}`);
+      break;
+    }
+
+    case "escalate": {
+      const { reason, attempts, suggestion } = action.payload as {
+        reason: string; attempts?: string; suggestion?: string;
+      };
+
+      // Post escalation comment
+      await prisma.comment.create({
+        data: {
+          text: `## Escalation\n\n**Reason:** ${reason}${attempts ? `\n\n**Attempted:** ${attempts}` : ""}${suggestion ? `\n\n**Suggestion:** ${suggestion}` : ""}`,
+          userId: agentUserId,
+          cardId,
+        },
+      });
+
+      // Find Master agent and trigger
+      const master = await prisma.agent.findFirst({
+        where: { role: "master" },
+        include: { user: { select: { id: true } } },
+      });
+
+      if (master) {
+        // Assign Master to card if not already
+        await prisma.cardMember.upsert({
+          where: { cardId_userId: { cardId, userId: master.userId } },
+          create: { cardId, userId: master.userId },
+          update: {},
+        });
+
+        // Create run for Master
+        const masterRun = await prisma.agentRun.create({
+          data: { agentId: master.id, cardId, parentRunId: runId, status: "QUEUED" },
+        });
+
+        const { enqueueAgentRun: enqueueMasterRun } = await import("./queue");
+        await enqueueMasterRun(masterRun.id);
+
+        await logRun(runId, "info", `Escalated to Master: ${reason.substring(0, 80)}`);
+      } else {
+        await logRun(runId, "warn", "No Master agent found for escalation");
+      }
+      break;
+    }
+
     default:
       await logRun(runId, "warn", `Unknown action type: ${action.type}`);
   }
