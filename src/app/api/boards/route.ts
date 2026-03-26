@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
         create: [
           { title: "To Do", position: 0 },
           { title: "In Progress", position: 1 },
-          { title: "Done", position: 2 },
+          { title: "QA", position: 2 },
+          { title: "Done", position: 3 },
+          { title: "Bug", position: 4 },
         ],
       },
     },

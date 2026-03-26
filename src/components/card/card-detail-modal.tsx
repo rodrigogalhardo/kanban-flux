@@ -284,7 +284,7 @@ export function CardDetailModal({
                 members={card.members}
                 onRunStarted={refreshCard}
               />
-              <AgentRunStatus cardId={card.id} />
+              <AgentRunStatus cardId={card.id} onRunCompleted={refreshCard} />
             </div>
 
             <Separator className="my-3" />

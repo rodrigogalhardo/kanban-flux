@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelineTree } from "./pipeline-tree";
@@ -40,6 +41,7 @@ interface AgentRunData {
 
 interface AgentRunStatusProps {
   cardId: string;
+  onRunCompleted?: () => void;
 }
 
 function formatElapsed(startedAt: string): string {
@@ -68,7 +70,7 @@ function RunStatusIcon({ status }: { status: string }) {
     case "CANCELLED":
       return <XCircle className="h-3.5 w-3.5 text-gray-400" />;
     case "QUEUED":
-      return <Clock className="h-3.5 w-3.5 text-gray-400" />;
+      return <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />;
     default:
       return <Bot className="h-3.5 w-3.5 text-gray-400" />;
   }
@@ -88,12 +90,15 @@ function LogLevelClass(level: string): string {
 }
 
 function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(
+    run.status === "RUNNING" || run.status === "QUEUED"
+  );
   const [logs, setLogs] = useState<AgentRunLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [elapsed, setElapsed] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [latestLog, setLatestLog] = useState<string | null>(null);
 
   // Update elapsed time for running tasks
   useEffect(() => {
@@ -104,6 +109,31 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
     }, 1000);
     return () => clearInterval(interval);
   }, [run.status, run.startedAt]);
+
+  // Auto-fetch logs for active runs to show latest activity
+  useEffect(() => {
+    if (run.status !== "RUNNING" && run.status !== "QUEUED") return;
+
+    async function fetchLatestLog() {
+      try {
+        const res = await fetch(`/api/agents/runs/${run.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const runLogs = data.logs || [];
+          setLogs(runLogs);
+          if (runLogs.length > 0) {
+            setLatestLog(runLogs[runLogs.length - 1].message);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    fetchLatestLog();
+    const interval = setInterval(fetchLatestLog, 5000);
+    return () => clearInterval(interval);
+  }, [run.id, run.status]);
 
   async function toggleExpand() {
     if (!expanded && logs.length === 0) {
@@ -145,9 +175,15 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
   }
 
   const isCancellable = run.status === "RUNNING" || run.status === "QUEUED";
+  const isActive = run.status === "RUNNING" || run.status === "QUEUED";
 
   return (
-    <div className="space-y-1">
+    <div
+      className={cn(
+        "space-y-1 rounded-md p-1.5 transition-colors",
+        isActive && "bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900"
+      )}
+    >
       <div
         role="button"
         tabIndex={0}
@@ -165,7 +201,7 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
         <span className="ml-auto flex items-center gap-1.5 text-muted-foreground">
           {run.status === "RUNNING" && (
             <>
-              <span>Working...</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">Working...</span>
               {elapsed && <span>{elapsed}</span>}
             </>
           )}
@@ -188,7 +224,7 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
             </Badge>
           )}
           {run.status === "QUEUED" && (
-            <span>Waiting...</span>
+            <span className="text-amber-600 dark:text-amber-400">Queued...</span>
           )}
           {run.status === "CANCELLED" && (
             <Badge variant="outline" className="text-[10px] px-1 py-0 bg-gray-50 text-gray-500 border-gray-200">
@@ -233,6 +269,14 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
         )}
       </div>
 
+      {/* Show latest log message inline for active runs */}
+      {isActive && latestLog && !expanded && (
+        <div className="flex items-start gap-1.5 ml-7 px-1">
+          <MessageSquare className="h-3 w-3 mt-0.5 text-blue-400 flex-shrink-0" />
+          <p className="text-[10px] text-blue-600 dark:text-blue-400 truncate">{latestLog}</p>
+        </div>
+      )}
+
       {run.status === "FAILED" && run.error && !expanded && (
         <p className="ml-7 text-[10px] text-red-500 truncate">{run.error}</p>
       )}
@@ -265,9 +309,10 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
   );
 }
 
-export function AgentRunStatus({ cardId }: AgentRunStatusProps) {
+export function AgentRunStatus({ cardId, onRunCompleted }: AgentRunStatusProps) {
   const [runs, setRuns] = useState<AgentRunData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [prevActiveCount, setPrevActiveCount] = useState(0);
 
   const fetchRuns = useCallback(async () => {
     try {
@@ -298,14 +343,55 @@ export function AgentRunStatus({ cardId }: AgentRunStatusProps) {
     return () => clearInterval(interval);
   }, [runs, fetchRuns]);
 
+  // Detect when active runs complete and notify parent
+  useEffect(() => {
+    const activeCount = runs.filter(
+      (r) => r.status === "QUEUED" || r.status === "RUNNING"
+    ).length;
+
+    if (prevActiveCount > 0 && activeCount === 0) {
+      // All active runs have completed, refresh the card
+      onRunCompleted?.();
+    }
+    setPrevActiveCount(activeCount);
+  }, [runs, prevActiveCount, onRunCompleted]);
+
   if (loading) return null;
   if (runs.length === 0) return null;
 
+  const hasActiveRuns = runs.some(
+    (r) => r.status === "QUEUED" || r.status === "RUNNING"
+  );
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Bot className="h-3.5 w-3.5" />
-        <span>Agent Runs</span>
+    <div className="space-y-1.5">
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-xs",
+          hasActiveRuns
+            ? "text-blue-600 dark:text-blue-400 font-medium"
+            : "text-muted-foreground"
+        )}
+      >
+        {hasActiveRuns ? (
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-500" />
+          </span>
+        ) : (
+          <Bot className="h-3.5 w-3.5" />
+        )}
+        <span>
+          {hasActiveRuns ? "Agent Running" : "Agent Runs"}
+        </span>
+        {hasActiveRuns && (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800 animate-pulse"
+          >
+            Live
+          </Badge>
+        )}
       </div>
       <div className="space-y-1.5">
         {runs.map((run) => {

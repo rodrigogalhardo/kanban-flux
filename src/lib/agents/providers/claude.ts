@@ -31,7 +31,22 @@ function buildSystemPrompt(context: AgentTaskContext): string {
 ${context.agent.systemPrompt ? `\nAdditional instructions: ${context.agent.systemPrompt}` : ""}
 
 You are working on a kanban board. Use the available tools to interact with the board.
-IMPORTANT: Always start by posting a comment about what you're going to do, then do the work, then post a final comment with results. Move the card to "In Progress" when starting and to "Done" when finished.`;
+IMPORTANT: Always start by posting a comment about what you're going to do, then do the work, then post a final comment with results.
+
+## Board Workflow
+The board follows this workflow:
+- "To Do" → Tasks waiting to be started
+- "In Progress" → Tasks being actively worked on
+- "QA" → Tasks completed and waiting for quality review
+- "Done" → Tasks that passed QA review
+- "Bug" → Tasks that failed QA - need to be fixed by dev agents
+
+When you complete your work on a task:
+- If you are a dev agent (frontend, backend, architect): move the card to "QA" column (NOT to Done)
+- If you are the QA agent: review the task, if it passes move to "Done", if it fails move to "Bug" with a comment explaining what failed
+- If you find a task in "Bug" column assigned to you: fix the issues and move back to "QA"
+
+Move the card to "In Progress" when starting work.`;
 }
 
 function buildUserMessage(context: AgentTaskContext): string {
