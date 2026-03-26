@@ -1,15 +1,15 @@
-# OpenFang Integration Plan - Kanban Flux
+# Lumys OS Integration Plan - Kanban Flux
 
 ## Context
 
-Kanban Flux currently uses BullMQ + Redis as the agent execution engine. OpenFang is an AI Operating System in Rust that provides: WASM sandbox, 53 built-in tools, 16 security layers, 27 LLM providers, workflow engine, agent memory with vector embeddings, and A2A protocol. This plan outlines a two-phase integration.
+Kanban Flux currently uses BullMQ + Redis as the agent execution engine. Lumys OS is an AI Operating System in Rust that provides: WASM sandbox, 53 built-in tools, 16 security layers, 27 LLM providers, workflow engine, agent memory with vector embeddings, and A2A protocol. This plan outlines a two-phase integration.
 
 ---
 
-## Phase 1: Curto Prazo - OpenFang como Worker dos Agentes (Side-by-Side)
+## Phase 1: Curto Prazo - Lumys OS como Worker dos Agentes (Side-by-Side)
 
 ### Objetivo
-Rodar OpenFang como serviço separado ao lado do Kanban Flux. O Next.js continua como UI, mas delega a execução dos agentes para o OpenFang ao invés do BullMQ worker.
+Rodar Lumys OS como serviço separado ao lado do Kanban Flux. O Next.js continua como UI, mas delega a execução dos agentes para o Lumys OS ao invés do BullMQ worker.
 
 ### Arquitetura
 
@@ -18,7 +18,7 @@ Rodar OpenFang como serviço separado ao lado do Kanban Flux. O Next.js continua
 │  Railway Project                                            │
 │                                                             │
 │  ┌──────────────┐     ┌─────────┐     ┌──────────────────┐  │
-│  │  Web App      │────▶│  Redis   │     │  OpenFang Daemon  │  │
+│  │  Web App      │────▶│  Redis   │     │  Lumys OS Daemon  │  │
 │  │  (Next.js)    │     │  (Queue) │◀────│  (Rust Binary)    │  │
 │  │               │     └─────────┘     │                    │  │
 │  │  - UI/UX      │                     │  - Agent Runtime   │  │
@@ -33,48 +33,48 @@ Rodar OpenFang como serviço separado ao lado do Kanban Flux. O Next.js continua
 
 ### Etapas de Implementação
 
-#### 1.1 Setup OpenFang como Serviço no Railway
+#### 1.1 Setup Lumys OS como Serviço no Railway
 **Estimativa: 1-2 dias**
 
-- Criar Dockerfile para OpenFang (compilar binário Rust)
-- Adicionar como serviço "openfang" no Railway
+- Criar Dockerfile para Lumys OS (compilar binário Rust)
+- Adicionar como serviço "lumys-os" no Railway
 - Configurar variáveis: LLM_PROVIDER, LLM_API_KEY, DATABASE_URL
 - Healthcheck: GET /api/health
-- OpenFang expõe API REST na porta 4200
+- Lumys OS expõe API REST na porta 4200
 
 ```dockerfile
-# Dockerfile.openfang
+# Dockerfile.lumys-os
 FROM rust:1.75-slim AS builder
 WORKDIR /app
-RUN git clone https://github.com/rodrigogalhardo/openfang .
+RUN git clone https://github.com/rodrigogalhardo/lumys-os .
 RUN cargo build --release
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates openssl && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/openfang /usr/local/bin/openfang
+COPY --from=builder /app/target/release/lumys-os /usr/local/bin/lumys-os
 EXPOSE 4200
-CMD ["openfang", "start", "--host", "0.0.0.0", "--port", "4200"]
+CMD ["lumys-os", "start", "--host", "0.0.0.0", "--port", "4200"]
 ```
 
-#### 1.2 Criar Adapter Bridge: Kanban Flux → OpenFang
+#### 1.2 Criar Adapter Bridge: Kanban Flux → Lumys OS
 **Estimativa: 2-3 dias**
 
-Criar um módulo que traduz agent runs do Kanban Flux para chamadas à API do OpenFang.
+Criar um módulo que traduz agent runs do Kanban Flux para chamadas à API do Lumys OS.
 
-**Novo arquivo:** `src/lib/agents/openfang-bridge.ts`
+**Novo arquivo:** `src/lib/agents/lumys-os-bridge.ts`
 
 ```typescript
-// Bridge between Kanban Flux executor and OpenFang runtime
-const OPENFANG_URL = process.env.OPENFANG_URL || "http://openfang:4200";
+// Bridge between Kanban Flux executor and Lumys OS runtime
+const OPENFANG_URL = process.env.OPENFANG_URL || "http://lumys-os:4200";
 
-interface OpenFangMessage {
+interface Lumys OSMessage {
   role: "user";
   content: string;
   tools?: string[];
 }
 
-// Send a task to OpenFang for execution
-export async function executeViaOpenFang(agentConfig: {
+// Send a task to Lumys OS for execution
+export async function executeViaLumys OS(agentConfig: {
   name: string;
   role: string;
   systemPrompt: string;
@@ -85,7 +85,7 @@ export async function executeViaOpenFang(agentConfig: {
   actions: any[];
   tokenUsage: number;
 }> {
-  // 1. Create or get agent in OpenFang
+  // 1. Create or get agent in Lumys OS
   const agentId = await ensureAgent(agentConfig);
 
   // 2. Send message to agent
@@ -129,18 +129,18 @@ async function ensureAgent(config: any): Promise<string> {
 #### 1.3 Dual Execution Mode
 **Estimativa: 1-2 dias**
 
-Permitir escolher entre BullMQ worker (atual) e OpenFang por agente.
+Permitir escolher entre BullMQ worker (atual) e Lumys OS por agente.
 
 Adicionar ao Agent model:
 ```prisma
-executionMode String @default("bullmq")  // "bullmq" ou "openfang"
+executionMode String @default("bullmq")  // "bullmq" ou "lumys-os"
 ```
 
 No executor, verificar o mode:
 ```typescript
-if (agent.executionMode === "openfang") {
-  // Delegate to OpenFang
-  const result = await executeViaOpenFang(agentConfig, context, tools);
+if (agent.executionMode === "lumys-os") {
+  // Delegate to Lumys OS
+  const result = await executeViaLumys OS(agentConfig, context, tools);
   // Parse result and apply actions
 } else {
   // Current BullMQ execution
@@ -148,12 +148,12 @@ if (agent.executionMode === "openfang") {
 }
 ```
 
-#### 1.4 Mapear Tools do Kanban Flux → OpenFang
+#### 1.4 Mapear Tools do Kanban Flux → Lumys OS
 **Estimativa: 2-3 dias**
 
-Traduzir os 22 agent tools do Kanban Flux para capabilities do OpenFang:
+Traduzir os 22 agent tools do Kanban Flux para capabilities do Lumys OS:
 
-| Kanban Flux Tool | OpenFang Equivalent |
+| Kanban Flux Tool | Lumys OS Equivalent |
 |-----------------|---------------------|
 | comment | channel_send (via webhook) |
 | move_card | HTTP POST to Kanban API |
@@ -166,7 +166,7 @@ Traduzir os 22 agent tools do Kanban Flux para capabilities do OpenFang:
 | recall_memory | memory_recall |
 | web_search | web_search (DuckDuckGo) |
 
-Criar custom tools no OpenFang (via HAND.toml) que chamam a API do Kanban Flux:
+Criar custom tools no Lumys OS (via HAND.toml) que chamam a API do Kanban Flux:
 
 ```toml
 [hand]
@@ -186,19 +186,19 @@ endpoint = "http://web:3000/api/cards/{card_id}"
 method = "PATCH"
 ```
 
-#### 1.5 Migrar Memory para OpenFang
+#### 1.5 Migrar Memory para Lumys OS
 **Estimativa: 1-2 dias**
 
-OpenFang tem memory substrate com vector embeddings (SQLite + embeddings). Migrar o AgentMemory atual para usar o OpenFang memory:
+Lumys OS tem memory substrate com vector embeddings (SQLite + embeddings). Migrar o AgentMemory atual para usar o Lumys OS memory:
 
-- Export memórias existentes → POST para OpenFang memory_store
-- Novo recall_memory → chama OpenFang semantic search
+- Export memórias existentes → POST para Lumys OS memory_store
+- Novo recall_memory → chama Lumys OS semantic search
 - Vantagem: busca por similaridade semântica vs keyword atual
 
 #### 1.6 Ativar Security Layers
 **Estimativa: 1 dia**
 
-Configurar as camadas de segurança do OpenFang:
+Configurar as camadas de segurança do Lumys OS:
 - Taint tracking (prevenir exfiltração de secrets)
 - Approval gates para shell_exec e browser
 - WASM sandbox para execução de código
@@ -209,17 +209,17 @@ Configurar as camadas de segurança do OpenFang:
 **Estimativa: 2-3 dias**
 
 - Criar um projeto de teste
-- Executar briefing → Analyst via OpenFang
+- Executar briefing → Analyst via Lumys OS
 - Comparar output com execução BullMQ
 - Validar: performance, custo, qualidade do output
 - Benchmark: latência, throughput, memory usage
 
 ### Entregáveis Phase 1
-- [ ] OpenFang rodando como serviço no Railway
+- [ ] Lumys OS rodando como serviço no Railway
 - [ ] Bridge adapter funcional
-- [ ] Dual execution mode (BullMQ ou OpenFang por agente)
+- [ ] Dual execution mode (BullMQ ou Lumys OS por agente)
 - [ ] 22 tools mapeados
-- [ ] Memory migrada para OpenFang
+- [ ] Memory migrada para Lumys OS
 - [ ] Security layers ativos
 - [ ] Testes end-to-end passando
 - [ ] Toggle na UI para escolher execution mode
@@ -228,10 +228,10 @@ Configurar as camadas de segurança do OpenFang:
 
 ---
 
-## Phase 2: Médio Prazo - Migrar Plataforma para OpenFang
+## Phase 2: Médio Prazo - Migrar Plataforma para Lumys OS
 
 ### Objetivo
-Substituir completamente o BullMQ worker, Redis (para queue), e o executor customizado pelo OpenFang como runtime único. O Next.js continua como UI mas toda execução de agentes é OpenFang nativo.
+Substituir completamente o BullMQ worker, Redis (para queue), e o executor customizado pelo Lumys OS como runtime único. O Next.js continua como UI mas toda execução de agentes é Lumys OS nativo.
 
 ### Arquitetura Final
 
@@ -240,7 +240,7 @@ Substituir completamente o BullMQ worker, Redis (para queue), e o executor custo
 │  Kanban Flux Platform                                         │
 │                                                               │
 │  ┌──────────────┐            ┌────────────────────────────┐   │
-│  │  Next.js UI   │───HTTP────▶│  OpenFang Kernel            │   │
+│  │  Next.js UI   │───HTTP────▶│  Lumys OS Kernel            │   │
 │  │               │            │                              │   │
 │  │  - Dashboard  │◀──SSE/WS──│  ┌─────────────────────┐    │   │
 │  │  - Boards     │            │  │  Agent Registry       │    │   │
@@ -281,10 +281,10 @@ Substituir completamente o BullMQ worker, Redis (para queue), e o executor custo
 
 ### Etapas de Implementação
 
-#### 2.1 Converter Agentes para OpenFang Agents
+#### 2.1 Converter Agentes para Lumys OS Agents
 **Estimativa: 3-5 dias**
 
-Traduzir os 14 agentes Antigravity (atualmente definidos em markdown + Prisma) para agent.toml do OpenFang:
+Traduzir os 14 agentes Antigravity (atualmente definidos em markdown + Prisma) para agent.toml do Lumys OS:
 
 ```toml
 # agents/analyst/agent.toml
@@ -314,12 +314,12 @@ max_context_tokens = 200000
 Criar um script de migração que:
 1. Lê os agentes do Prisma
 2. Gera agent.toml para cada um
-3. Registra no OpenFang via API
+3. Registra no Lumys OS via API
 
-#### 2.2 Converter Workflows para OpenFang Workflow Engine
+#### 2.2 Converter Workflows para Lumys OS Workflow Engine
 **Estimativa: 3-5 dias**
 
-O fluxo Briefing → Analyst → Cards → Agents → QA → Done vira um OpenFang Workflow:
+O fluxo Briefing → Analyst → Cards → Agents → QA → Done vira um Lumys OS Workflow:
 
 ```toml
 [workflow]
@@ -362,10 +362,10 @@ prompt_template = "Generate final project report based on: {{results}}"
 mode = "sequential"
 ```
 
-#### 2.3 Migrar Auto-Trigger para OpenFang Triggers
+#### 2.3 Migrar Auto-Trigger para Lumys OS Triggers
 **Estimativa: 2-3 dias**
 
-Substituir o auto-trigger customizado por OpenFang Trigger Engine:
+Substituir o auto-trigger customizado por Lumys OS Trigger Engine:
 
 ```toml
 [[triggers]]
@@ -390,20 +390,20 @@ agent = "{{assigned_agent}}"
 prompt_template = "Human commented on your task: {{comment_text}}"
 ```
 
-#### 2.4 Migrar Scheduling para OpenFang Scheduler
+#### 2.4 Migrar Scheduling para Lumys OS Scheduler
 **Estimativa: 1-2 dias**
 
-- SLA checker → OpenFang periodic agent (cron: "0 */6 * * *")
-- Memory decay → OpenFang periodic agent (cron: "0 0 * * *")
-- Risk scoring → OpenFang event trigger (on card update)
+- SLA checker → Lumys OS periodic agent (cron: "0 */6 * * *")
+- Memory decay → Lumys OS periodic agent (cron: "0 0 * * *")
+- Risk scoring → Lumys OS event trigger (on card update)
 
 #### 2.5 Substituir BullMQ Queue
 **Estimativa: 2-3 dias**
 
 - Remover BullMQ + Redis dependência
-- API routes chamam OpenFang diretamente
-- OpenFang gerencia filas internamente (com resource quotas)
-- SSE/WebSocket via OpenFang API (streaming nativo)
+- API routes chamam Lumys OS diretamente
+- Lumys OS gerencia filas internamente (com resource quotas)
+- SSE/WebSocket via Lumys OS API (streaming nativo)
 
 Mudanças:
 ```typescript
@@ -411,15 +411,15 @@ Mudanças:
 const { enqueueAgentRun } = await import("@/lib/agents/queue");
 await enqueueAgentRun(run.id);
 
-// DEPOIS (OpenFang)
-const { sendToOpenFang } = await import("@/lib/agents/openfang-bridge");
-await sendToOpenFang(run.agentId, run.cardId, taskContext);
+// DEPOIS (Lumys OS)
+const { sendToLumys OS } = await import("@/lib/agents/lumys-os-bridge");
+await sendToLumys OS(run.agentId, run.cardId, taskContext);
 ```
 
-#### 2.6 Integrar OpenFang Memory Substrate
+#### 2.6 Integrar Lumys OS Memory Substrate
 **Estimativa: 2-3 dias**
 
-Substituir AgentMemory (Prisma) pelo OpenFang Memory Substrate:
+Substituir AgentMemory (Prisma) pelo Lumys OS Memory Substrate:
 - Structured KV → per-agent config
 - Semantic Search → vector embeddings para recall
 - Knowledge Graph → entities + relations (complementa GraphNode/GraphEdge)
@@ -427,7 +427,7 @@ Substituir AgentMemory (Prisma) pelo OpenFang Memory Substrate:
 
 Vantagem principal: **busca semântica** vs keyword match atual. Agente pergunta "como fizemos autenticação?" e encontra memórias relevantes mesmo sem keywords exatas.
 
-#### 2.7 Ativar OpenFang Hands
+#### 2.7 Ativar Lumys OS Hands
 **Estimativa: 3-5 dias**
 
 Criar Hands customizados para o Kanban Flux:
@@ -453,7 +453,7 @@ bug_rate = "gauge"
 ```
 
 **Researcher Hand (para o Analyst):**
-- Usa o Researcher Hand built-in do OpenFang
+- Usa o Researcher Hand built-in do Lumys OS
 - Configurar para pesquisar tecnologias, competidores, etc.
 - Output vai direto para o card como attachment
 
@@ -465,7 +465,7 @@ bug_rate = "gauge"
 #### 2.8 Browser Automation para QA
 **Estimativa: 2-3 dias**
 
-Usar o Browser Hand do OpenFang para QA visual:
+Usar o Browser Hand do Lumys OS para QA visual:
 - QA agent abre preview URL no browser
 - Navega pelas páginas
 - Tira screenshots
@@ -483,7 +483,7 @@ required = ["browser_navigate", "browser_screenshot", "browser_fill_form", "kanb
 #### 2.9 Code Execution Sandbox Real
 **Estimativa: 2-3 dias**
 
-Usar WASM sandbox + docker_exec do OpenFang para:
+Usar WASM sandbox + docker_exec do Lumys OS para:
 - Frontend agent roda `npm run build` e verifica erros
 - Backend agent roda `npm test`
 - QA agent roda testes automatizados
@@ -493,32 +493,32 @@ Usar WASM sandbox + docker_exec do OpenFang para:
 **Estimativa: 3-5 dias**
 
 Para 20 projetos x 20 agentes:
-- Múltiplas instâncias OpenFang em mesh
+- Múltiplas instâncias Lumys OS em mesh
 - Agentes distribuídos entre nós
 - Load balancing automático
 - Failover: se um nó cai, agentes migram
 
 ```toml
-# openfang.toml
+# lumys-os.toml
 [network]
 listen_addr = "0.0.0.0:8765"
 bootstrap_peers = [
-  "openfang-worker-1.railway.internal:8765",
-  "openfang-worker-2.railway.internal:8765",
+  "lumys-os-worker-1.railway.internal:8765",
+  "lumys-os-worker-2.railway.internal:8765",
 ]
 ```
 
 #### 2.11 Remover Código Legado
 **Estimativa: 2-3 dias**
 
-Após validar que tudo funciona via OpenFang:
+Após validar que tudo funciona via Lumys OS:
 - Remover `src/lib/agents/executor.ts`
 - Remover `src/lib/agents/providers/` (gemini, claude, openai)
 - Remover `src/lib/agents/queue.ts`
 - Remover `src/lib/redis.ts`
 - Remover `src/worker.ts`
 - Remover dependências: bullmq, ioredis, @google/generative-ai, @anthropic-ai/sdk, openai
-- Manter: openfang-bridge.ts como interface única
+- Manter: lumys-os-bridge.ts como interface única
 
 #### 2.12 Testes de Migração
 **Estimativa: 3-5 dias**
@@ -531,10 +531,10 @@ Após validar que tudo funciona via OpenFang:
 - User acceptance testing
 
 ### Entregáveis Phase 2
-- [ ] Todos os 14 agentes como OpenFang agents (agent.toml)
+- [ ] Todos os 14 agentes como Lumys OS agents (agent.toml)
 - [ ] Workflow Engine configurado para pipeline completo
 - [ ] Triggers substituindo auto-trigger customizado
-- [ ] OpenFang Scheduler substituindo cron jobs
+- [ ] Lumys OS Scheduler substituindo cron jobs
 - [ ] BullMQ + Redis removidos
 - [ ] Memory substrate com vector embeddings
 - [ ] Browser automation para QA visual
@@ -552,18 +552,18 @@ Após validar que tudo funciona via OpenFang:
 
 | Phase | Duração | Risco | Resultado |
 |-------|---------|-------|-----------|
-| **Phase 1** | 10-15 dias | Baixo | OpenFang side-by-side, dual mode, ganho imediato de security + sandbox |
+| **Phase 1** | 10-15 dias | Baixo | Lumys OS side-by-side, dual mode, ganho imediato de security + sandbox |
 | **Phase 2** | 25-35 dias | Médio | Migração completa, BullMQ removido, escala enterprise, 53 tools nativos |
 
 ### Decisão: Quando iniciar Phase 2?
 
 Iniciar Phase 2 quando:
 1. Phase 1 está estável há pelo menos 1 semana
-2. OpenFang v1.0 é lançado (ou commit atual é validado em produção)
+2. Lumys OS v1.0 é lançado (ou commit atual é validado em produção)
 3. Benchmark confirma performance >= BullMQ
-4. Todos os 22 tools funcionam via OpenFang
+4. Todos os 22 tools funcionam via Lumys OS
 
 ### Dependências Externas
-- OpenFang v1.0 release (estimado mid-2026)
+- Lumys OS v1.0 release (estimado mid-2026)
 - Railway suporte a Rust builds (já suporta)
 - Gemini API estabilidade (já validado)
