@@ -27,7 +27,7 @@ import { MemberPicker } from "./member-picker";
 import { DueDatePicker } from "./due-date-picker";
 import { AgentRunTrigger } from "@/components/agents/agent-run-trigger";
 import { AgentRunStatus } from "@/components/agents/agent-run-status";
-import ReactMarkdown from "react-markdown";
+import { Markdown } from "@/components/ui/markdown";
 import type { CardWithDetails } from "@/types";
 
 export function CardDetailModal({
@@ -191,9 +191,7 @@ export function CardDetailModal({
                   className="min-h-[60px] cursor-pointer rounded-lg bg-surface p-3 text-sm text-secondary hover:bg-gray-200"
                 >
                   {card.description ? (
-                    <div className="prose prose-sm prose-neutral max-w-none [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_code]:bg-gray-200 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto">
-                      <ReactMarkdown>{card.description}</ReactMarkdown>
-                    </div>
+                    <Markdown content={card.description} />
                   ) : (
                     "Add a more detailed description..."
                   )}

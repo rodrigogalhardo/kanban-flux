@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { Markdown } from "@/components/ui/markdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -142,9 +142,7 @@ export function CommentsSection({
                   {timeAgo(comment.createdAt)}
                 </span>
               </div>
-              <div className="mt-0.5 text-sm text-secondary prose prose-sm prose-neutral max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-xs [&_h3]:font-medium [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_code]:bg-gray-200 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-gray-900 [&_pre]:text-gray-100 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-xs">
-                <ReactMarkdown>{comment.text}</ReactMarkdown>
-              </div>
+              <Markdown content={comment.text} className="mt-0.5 text-sm text-secondary" />
             </div>
           </div>
         ))}
