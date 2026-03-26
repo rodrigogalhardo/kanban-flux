@@ -39,6 +39,7 @@ import {
   FolderGit2,
   Zap,
   ZapOff,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -382,6 +383,15 @@ function CreateProjectDialog({
             <label className="mb-1.5 block text-sm font-medium text-neutral-900">
               Project Briefing
             </label>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10 mb-2">
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs text-secondary">
+                Don&apos;t have a briefing?{" "}
+                <a href="/briefing" className="text-primary font-medium hover:underline">
+                  Generate one with AI
+                </a>
+              </p>
+            </div>
             <p className="text-xs text-secondary mb-2">
               Upload a .txt, .md or .pdf file with the project requirements. The Analyst agent will automatically create tasks from it.
             </p>

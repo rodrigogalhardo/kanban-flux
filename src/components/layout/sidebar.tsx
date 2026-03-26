@@ -16,10 +16,12 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { label: "Briefing", icon: Sparkles, href: "/briefing" },
   { label: "Project Space", icon: Briefcase, href: "/project-space" },
   { label: "Projects", icon: FolderGit2, href: "/projects" },
   { label: "Workspace", icon: LayoutDashboard, href: "/workspace" },
