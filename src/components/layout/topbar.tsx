@@ -16,6 +16,7 @@ import {
   AtSign,
   Check,
   Shield,
+  FolderGit2,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -336,8 +337,22 @@ export function Topbar() {
               className="cursor-pointer"
               onSelect={() => router.push("/settings")}
             >
-              <User className="h-4 w-4" />
-              Profile &amp; Settings
+              <User className="h-4 w-4 mr-2" />
+              Profile & Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => router.push("/agents")}
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              AI Agents
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => router.push("/projects")}
+            >
+              <FolderGit2 className="h-4 w-4 mr-2" />
+              Projects
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -348,7 +363,7 @@ export function Topbar() {
                 window.location.href = "/login";
               }}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 mr-2" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
