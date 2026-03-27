@@ -70,6 +70,25 @@ async function main() {
   process.on("SIGINT", () => shutdown("SIGINT"));
 
   console.log(`[Worker] Ready and waiting for jobs...`);
+
+  // Periodic scan: auto-assign and trigger agents every 5 minutes
+  async function runPeriodicScan() {
+    try {
+      const { dailyScan } = await import("./lib/agents/auto-assign");
+      const result = await dailyScan();
+      if (result.assigned > 0 || result.triggered > 0) {
+        console.log(`[Periodic Scan] Assigned: ${result.assigned}, Triggered: ${result.triggered}`);
+      }
+    } catch (err) {
+      console.error("[Periodic Scan] Error:", err);
+    }
+  }
+
+  // Run immediately on startup
+  setTimeout(runPeriodicScan, 10000); // 10s after startup
+
+  // Then every 5 minutes
+  setInterval(runPeriodicScan, 5 * 60 * 1000);
 }
 
 main().catch((err) => {

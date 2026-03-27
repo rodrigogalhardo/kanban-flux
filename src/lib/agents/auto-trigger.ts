@@ -171,3 +171,49 @@ export async function handleCardColumnChange(cardId: string, newColumnId: string
     triggerLogger.error("Failed to enqueue auto-triggered run", { cardId, error: e instanceof Error ? e.message : String(e) });
   }
 }
+
+export async function handleAgentAssigned(cardId: string, agentUserId: string) {
+  // Find the agent
+  const agent = await prisma.agent.findFirst({
+    where: { userId: agentUserId },
+  });
+  if (!agent) return;
+
+  // Get the card's column
+  const card = await prisma.card.findUnique({
+    where: { id: cardId },
+    include: { column: { include: { board: { include: { project: { select: { autoTrigger: true } } } } } } },
+  });
+  if (!card) return;
+
+  const autoTrigger = card.column.board.project?.autoTrigger ?? true;
+  if (!autoTrigger) return;
+
+  // Don't trigger if card is in Done
+  if (card.column.title.toLowerCase() === "done") return;
+
+  // Check for active runs
+  const activeRun = await prisma.agentRun.findFirst({
+    where: { agentId: agent.id, cardId, status: { in: ["QUEUED", "RUNNING"] } },
+  });
+  if (activeRun) return;
+
+  // Check capacity
+  const activeRuns = await prisma.agentRun.count({
+    where: { agentId: agent.id, status: { in: ["QUEUED", "RUNNING"] } },
+  });
+  if (activeRuns >= agent.maxConcurrent) return;
+
+  // Create and enqueue run
+  const run = await prisma.agentRun.create({
+    data: { agentId: agent.id, cardId, status: "QUEUED" },
+  });
+  await prisma.agent.update({ where: { id: agent.id }, data: { status: "WORKING" } });
+  try {
+    const { enqueueAgentRun } = await import("./queue");
+    await enqueueAgentRun(run.id);
+    triggerLogger.info("Agent triggered on assignment", { cardId, agentRole: agent.role });
+  } catch (e) {
+    triggerLogger.error("Failed to enqueue agent on assignment", { cardId, error: e instanceof Error ? e.message : String(e) });
+  }
+}

@@ -23,5 +23,11 @@ export async function POST(req: NextRequest) {
       comments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
     },
   });
+  // Auto-assign agent based on labels/content
+  try {
+    const { autoAssignCard } = await import("@/lib/agents/auto-assign");
+    await autoAssignCard(card.id);
+  } catch {}
+
   return NextResponse.json(card, { status: 201 });
 }

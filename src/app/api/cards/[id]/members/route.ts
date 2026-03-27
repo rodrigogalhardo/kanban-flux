@@ -6,10 +6,20 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const body = await req.json();
+  const userId = body.userId;
   const cardMember = await prisma.cardMember.create({
-    data: { cardId: params.id, userId: body.userId },
+    data: { cardId: params.id, userId },
     include: { user: { select: { id: true, name: true, avatar: true } } },
   });
+
+  // Check if the assigned member is an agent and auto-trigger
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAgent: true } });
+  if (user?.isAgent) {
+    import("@/lib/agents/auto-trigger").then(({ handleAgentAssigned }) => {
+      handleAgentAssigned(params.id, userId).catch(console.error);
+    });
+  }
+
   return NextResponse.json(cardMember, { status: 201 });
 }
 
