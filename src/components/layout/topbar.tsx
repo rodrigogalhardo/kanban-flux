@@ -340,7 +340,14 @@ export function Topbar() {
               Profile &amp; Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onSelect={() => {
+                document.cookie = "kanban-user-id=; path=/; max-age=0";
+                localStorage.removeItem("kanban-user");
+                window.location.href = "/login";
+              }}
+            >
               <LogOut className="h-4 w-4" />
               Sign out
             </DropdownMenuItem>

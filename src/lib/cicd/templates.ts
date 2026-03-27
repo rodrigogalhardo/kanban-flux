@@ -16,7 +16,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
-      - run: npm test || echo "No tests configured"
+      - run: npm test
 
   lint:
     runs-on: ubuntu-latest

@@ -1,5 +1,6 @@
 import { Worker, Job } from "bullmq";
 import IORedis from "ioredis";
+import { workerLogger } from "@/lib/logger";
 
 // We need to set up the Prisma client and module aliases since this runs outside Next.js
 // The worker imports the executor directly
@@ -24,13 +25,13 @@ async function main() {
     QUEUE_NAME,
     async (job: Job) => {
       const { runId } = job.data;
-      console.log(`[Worker] Processing run ${runId} (job ${job.id})`);
+      workerLogger.info("Processing run", { runId, jobId: job.id ?? undefined });
 
       try {
         await executeRun(runId);
-        console.log(`[Worker] Run ${runId} completed successfully`);
+        workerLogger.info("Run completed successfully", { runId, jobId: job.id ?? undefined });
       } catch (error) {
-        console.error(`[Worker] Run ${runId} failed:`, error);
+        workerLogger.error("Run failed", { runId, error: error instanceof Error ? error.message : String(error) });
         throw error; // Let BullMQ handle retries
       }
     },
@@ -45,15 +46,15 @@ async function main() {
   );
 
   worker.on("completed", (job) => {
-    console.log(`[Worker] Job ${job.id} completed`);
+    workerLogger.info("Job completed", { jobId: job.id ?? undefined });
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`[Worker] Job ${job?.id} failed:`, err.message);
+    workerLogger.error("Job failed", { jobId: job?.id ?? undefined, error: err.message });
   });
 
   worker.on("error", (err) => {
-    console.error(`[Worker] Worker error:`, err);
+    workerLogger.error("Worker error", { error: err.message });
   });
 
   // Graceful shutdown

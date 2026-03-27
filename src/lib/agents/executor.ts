@@ -5,6 +5,7 @@ import { decrypt } from "./crypto";
 import type { AgentAction } from "./types";
 import { AGENT_TOOLS_SCHEMA } from "./types";
 import type { Prisma, AgentProvider as AgentProviderType } from "@prisma/client";
+import { agentLogger } from "@/lib/logger";
 
 const MAX_EXECUTION_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -621,6 +622,23 @@ export async function executeRun(runId: string): Promise<void> {
       } catch (actionError) {
         await logRun(runId, "error", `Failed to apply action ${action.type}: ${actionError instanceof Error ? actionError.message : String(actionError)}`);
       }
+
+      // Check debug pause
+      if (checkRun?.debugMode) {
+        const currentDebugRun = await prisma.agentRun.findUnique({ where: { id: runId }, select: { debugPause: true } });
+        if (currentDebugRun?.debugPause) {
+          await logRun(runId, "debug", "Paused - waiting for resume signal");
+          // Wait up to 5 minutes for resume
+          let waitTime = 0;
+          while (waitTime < 300000) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            waitTime += 3000;
+            const check = await prisma.agentRun.findUnique({ where: { id: runId }, select: { debugPause: true, status: true } });
+            if (!check?.debugPause || check.status === "CANCELLED") break;
+          }
+          await logRun(runId, "debug", "Resumed execution");
+        }
+      }
     }
 
     // Calculate cost
@@ -637,6 +655,7 @@ export async function executeRun(runId: string): Promise<void> {
       },
     });
 
+    agentLogger.info("Run completed", { runId, tokens: response.tokenUsage, cost });
     await logRun(runId, "info", `Run completed. Tokens: ${response.tokenUsage}, Cost: $${cost.toFixed(4)}`);
 
     // Update project budget
@@ -682,6 +701,7 @@ export async function executeRun(runId: string): Promise<void> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
+    agentLogger.error("Run failed", { runId, error: errorMessage });
     await logRun(runId, "error", `Run failed: ${errorMessage}`);
 
     // Update run to FAILED

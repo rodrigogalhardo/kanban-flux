@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Bot,
+  Bug,
   CheckCircle2,
   XCircle,
   Clock,
   ChevronDown,
   ChevronRight,
   X,
+  Pause,
+  Play,
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +31,8 @@ interface AgentRunData {
   id: string;
   status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
   parentRunId?: string | null;
+  debugMode?: boolean;
+  debugPause?: boolean;
   agent: {
     user: { id: string; name: string };
   };
@@ -99,6 +105,9 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
   const [cancelling, setCancelling] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [latestLog, setLatestLog] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(run.debugMode ?? false);
+  const [debugPaused, setDebugPaused] = useState(run.debugPause ?? false);
+  const [debugLoading, setDebugLoading] = useState(false);
 
   // Update elapsed time for running tasks
   useEffect(() => {
@@ -171,6 +180,32 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
       console.error("Failed to cancel run:", err);
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleDebugAction(action: "enable_debug" | "pause" | "resume") {
+    setDebugLoading(true);
+    try {
+      const res = await fetch(`/api/agents/runs/${run.id}/debug`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        await res.json();
+        if (action === "enable_debug") {
+          setDebugMode(true);
+          setDebugPaused(true);
+        } else if (action === "pause") {
+          setDebugPaused(true);
+        } else if (action === "resume") {
+          setDebugPaused(false);
+        }
+      }
+    } catch (err) {
+      console.error("Debug action failed:", err);
+    } finally {
+      setDebugLoading(false);
     }
   }
 
@@ -265,6 +300,53 @@ function RunItem({ run, onCancelled }: { run: AgentRunData; onCancelled?: () => 
             >
               {cancelling ? "..." : "Cancel"}
             </Button>
+          </span>
+        )}
+        {/* Debug controls */}
+        {isActive && !debugMode && (
+          <button
+            type="button"
+            title="Enable debug mode"
+            className="ml-1 rounded p-0.5 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 transition-colors"
+            disabled={debugLoading}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDebugAction("enable_debug");
+            }}
+          >
+            <Bug className="h-3 w-3" />
+          </button>
+        )}
+        {isActive && debugMode && debugPaused && (
+          <span className="ml-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-orange-50 text-orange-600 border-orange-200">
+              Paused
+            </Badge>
+            <button
+              type="button"
+              title="Resume execution"
+              className="rounded p-0.5 text-orange-500 hover:text-green-600 hover:bg-green-50 transition-colors"
+              disabled={debugLoading}
+              onClick={() => handleDebugAction("resume")}
+            >
+              <Play className="h-3 w-3" />
+            </button>
+          </span>
+        )}
+        {isActive && debugMode && !debugPaused && (
+          <span className="ml-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-orange-50 text-orange-600 border-orange-200">
+              Debug
+            </Badge>
+            <button
+              type="button"
+              title="Pause execution"
+              className="rounded p-0.5 text-orange-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+              disabled={debugLoading}
+              onClick={() => handleDebugAction("pause")}
+            >
+              <Pause className="h-3 w-3" />
+            </button>
           </span>
         )}
       </div>

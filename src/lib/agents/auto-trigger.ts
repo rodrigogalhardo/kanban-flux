@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { triggerLogger } from "@/lib/logger";
 
 /**
  * Auto-trigger: when a card moves to a new column, trigger the assigned agent.
@@ -136,8 +137,8 @@ export async function handleCardColumnChange(cardId: string, newColumnId: string
   try {
     const { enqueueAgentRun } = await import("./queue");
     await enqueueAgentRun(run.id);
-    console.log(`[Auto-trigger] Triggered ${agent.role} on card ${cardId} (column: ${column.title})`);
+    triggerLogger.info("Auto-triggered agent", { cardId, agentRole: agent.role, columnTitle: column.title });
   } catch (e) {
-    console.error("[Auto-trigger] Failed to enqueue:", e);
+    triggerLogger.error("Failed to enqueue auto-triggered run", { cardId, error: e instanceof Error ? e.message : String(e) });
   }
 }

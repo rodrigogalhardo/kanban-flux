@@ -260,6 +260,8 @@ model AgentRun {
   cardId      String
   parentRunId String?
   status      RunStatus @default(QUEUED)
+  debugMode   Boolean   @default(false)
+  debugPause  Boolean   @default(false)  // when true, executor pauses between actions
   startedAt   DateTime?
   completedAt DateTime?
   error       String?

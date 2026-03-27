@@ -5,12 +5,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
 
-  if (!projectId) {
-    return NextResponse.json({ error: "projectId is required" }, { status: 400 });
-  }
-
   const sprints = await prisma.sprint.findMany({
-    where: { projectId },
+    where: projectId ? { projectId } : {},
     include: {
       cards: {
         include: {
