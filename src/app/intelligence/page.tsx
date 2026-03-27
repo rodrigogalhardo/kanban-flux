@@ -278,12 +278,12 @@ function GraphVisualization({
   const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
 
   return (
-    <div className="relative">
+    <div className="relative w-full overflow-hidden" style={{ maxWidth: "100%" }}>
       <svg
         ref={svgRef}
-        width={WIDTH}
-        height={HEIGHT}
-        className="rounded-lg border border-gray-200 bg-gray-50"
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full h-auto rounded-lg border border-gray-200 bg-gray-50"
+        style={{ maxWidth: "100%", maxHeight: HEIGHT }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -415,7 +415,7 @@ function GraphVisualization({
         <div
           className="pointer-events-none absolute z-50 max-w-xs rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
           style={{
-            left: Math.min(mousePos.x + 16, WIDTH - 200),
+            left: `min(${mousePos.x + 16}px, calc(100% - 220px))`,
             top: Math.min(mousePos.y + 16, HEIGHT - 80),
           }}
         >
@@ -605,7 +605,7 @@ export default function IntelligencePage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

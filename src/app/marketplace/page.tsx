@@ -303,21 +303,21 @@ export default function MarketplacePage() {
                 <p className="text-sm">Try a different category filter</p>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((template) => (
                   <Card
                     key={template.id}
-                    className="flex flex-col transition-shadow hover:shadow-lg"
+                    className="flex flex-col border border-gray-200 shadow-sm transition-shadow hover:shadow-lg"
                   >
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-3 px-5">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                             {CATEGORY_ICONS[template.category] || (
                               <Bot className="h-4 w-4 text-primary" />
                             )}
                           </div>
-                          <CardTitle className="text-lg leading-tight">
+                          <CardTitle className="text-lg leading-tight truncate">
                             {template.name}
                           </CardTitle>
                         </div>
@@ -332,7 +332,7 @@ export default function MarketplacePage() {
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex flex-1 flex-col gap-4">
+                    <CardContent className="flex flex-1 flex-col gap-4 px-5">
                       <p className="text-sm text-secondary leading-relaxed">
                         {template.description}
                       </p>
@@ -357,7 +357,7 @@ export default function MarketplacePage() {
                       </div>
 
                       {/* Footer */}
-                      <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-200">
                         <div className="flex items-center gap-3 text-xs text-secondary">
                           <span className="flex items-center gap-1">
                             <Users className="h-3.5 w-3.5" />
@@ -405,21 +405,21 @@ export default function MarketplacePage() {
                 <p className="text-sm">Try a different category filter</p>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                 {filteredBoards.map((template) => (
                   <Card
                     key={template.id}
-                    className="flex flex-col transition-shadow hover:shadow-lg"
+                    className="flex flex-col border border-gray-200 shadow-sm transition-shadow hover:shadow-lg"
                   >
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-3 px-5">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                             {CATEGORY_ICONS[template.category] || (
                               <LayoutTemplate className="h-4 w-4 text-primary" />
                             )}
                           </div>
-                          <CardTitle className="text-lg leading-tight">
+                          <CardTitle className="text-lg leading-tight truncate">
                             {template.name}
                           </CardTitle>
                         </div>
@@ -434,7 +434,7 @@ export default function MarketplacePage() {
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex flex-1 flex-col gap-4">
+                    <CardContent className="flex flex-1 flex-col gap-4 px-5">
                       <p className="text-sm text-secondary leading-relaxed">
                         {template.description}
                       </p>
@@ -485,7 +485,7 @@ export default function MarketplacePage() {
                       )}
 
                       {/* Footer */}
-                      <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-200">
                         <div className="flex items-center gap-3 text-xs text-secondary">
                           <span className="flex items-center gap-1">
                             <Columns3 className="h-3.5 w-3.5" />
