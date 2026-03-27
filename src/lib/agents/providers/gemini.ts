@@ -227,15 +227,26 @@ export class GeminiProvider implements AgentProvider {
 
       if (!hasFunctionCalls) break;
 
-      // Send function responses back to continue the conversation
-      const functionResponses = parts
-        .filter((p) => p.functionCall)
-        .map((p) => ({
+      // Execute actions inline and return real results to the LLM
+      const { executeActionInline } = await import("../action-executor");
+      const functionResponses = [];
+      for (const p of parts) {
+        if (!p.functionCall) continue;
+        const fc = p.functionCall;
+        const result = await executeActionInline(
+          fc.name,
+          (fc.args as Record<string, unknown>) || {},
+          context.card.id,
+          context.agent.userId,
+          context.runId || "inline-" + Date.now(),
+        );
+        functionResponses.push({
           functionResponse: {
-            name: p.functionCall!.name,
-            response: { success: true, message: `Action "${p.functionCall!.name}" queued for execution` },
+            name: fc.name,
+            response: result,
           },
-        }));
+        });
+      }
 
       response = await chat.sendMessage(functionResponses);
       result = response.response;

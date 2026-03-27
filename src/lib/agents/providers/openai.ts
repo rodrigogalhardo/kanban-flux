@@ -154,6 +154,8 @@ export class OpenAIProvider implements AgentProvider {
 
       messages.push(choice.message);
 
+      // Execute actions inline and return real results to the LLM
+      const { executeActionInline } = await import("../action-executor");
       for (const tc of choice.message.tool_calls) {
         const fnCall = tc as { id: string; type: string; function: { name: string; arguments: string } };
         const args = JSON.parse(fnCall.function.arguments || "{}");
@@ -161,10 +163,17 @@ export class OpenAIProvider implements AgentProvider {
           type: fnCall.function.name as AgentAction["type"],
           payload: args,
         });
+        const result = await executeActionInline(
+          fnCall.function.name,
+          args,
+          context.card.id,
+          context.agent.userId,
+          context.runId || "inline-" + Date.now(),
+        );
         messages.push({
           role: "tool",
           tool_call_id: fnCall.id,
-          content: `Action "${fnCall.function.name}" queued for execution`,
+          content: JSON.stringify(result),
         });
       }
 

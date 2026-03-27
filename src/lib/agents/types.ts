@@ -40,6 +40,7 @@ export interface AgentTaskContext {
   };
   memories?: { type: string; content: string; tags: string[] }[];
   crossProjectMemories?: { type: string; content: string; tags: string[]; source: string | null }[];
+  runId?: string;
 }
 
 export type AgentActionType =

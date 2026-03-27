@@ -156,6 +156,9 @@ export class ClaudeProvider implements AgentProvider {
       let hasToolUse = false;
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
+      // Collect tool_use blocks first, then execute them
+      const toolUseBlocks: { name: string; id: string; input: Record<string, unknown> }[] = [];
+
       for (const block of response.content) {
         if (block.type === "text") {
           textContent += block.text + "\n";
@@ -166,10 +169,29 @@ export class ClaudeProvider implements AgentProvider {
             type: block.name as AgentAction["type"],
             payload: (block.input as Record<string, unknown>) || {},
           });
+          toolUseBlocks.push({
+            name: block.name,
+            id: block.id,
+            input: (block.input as Record<string, unknown>) || {},
+          });
+        }
+      }
+
+      // Execute actions inline and return real results to the LLM
+      if (toolUseBlocks.length > 0) {
+        const { executeActionInline } = await import("../action-executor");
+        for (const block of toolUseBlocks) {
+          const result = await executeActionInline(
+            block.name,
+            block.input,
+            context.card.id,
+            context.agent.userId,
+            context.runId || "inline-" + Date.now(),
+          );
           toolResults.push({
             type: "tool_result",
             tool_use_id: block.id,
-            content: `Action "${block.name}" queued for execution`,
+            content: JSON.stringify(result),
           });
         }
       }
