@@ -7,6 +7,7 @@ import { AllBoardsTable } from "@/components/dashboard/all-boards-table";
 import { CreateBoardDialog } from "@/components/dashboard/create-board-dialog";
 import { AgentActivity } from "@/components/dashboard/agent-activity";
 import { ApprovalsPanel } from "@/components/agents/approvals-panel";
+import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import type { BoardSummary } from "@/types";
 
 const DEFAULT_WORKSPACE_ID = "default-workspace";
@@ -31,6 +32,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
+      <WelcomeModal />
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900">

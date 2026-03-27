@@ -10,6 +10,7 @@ interface AgentGridProps {
   onSelect?: (agent: AgentData) => void;
   onEdit?: (agent: AgentData) => void;
   onDelete?: (agent: AgentData) => void;
+  onClone?: (agentId: string) => void;
 }
 
 function SkeletonCard() {
@@ -47,6 +48,7 @@ export function AgentGrid({
   onSelect,
   onEdit,
   onDelete,
+  onClone,
 }: AgentGridProps) {
   if (loading) {
     return (
@@ -84,6 +86,7 @@ export function AgentGrid({
           onClick={onSelect}
           onEdit={onEdit}
           onDelete={onDelete}
+          onClone={onClone}
         />
       ))}
     </div>

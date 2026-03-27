@@ -23,6 +23,9 @@ import {
   TrendingUp,
   Clock,
   Layers,
+  Share2,
+  Copy,
+  ThumbsUp,
 } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -110,6 +113,12 @@ export interface AgentData {
     cardsWorked?: number;
     lastActive?: string | null;
   };
+  feedbackStats?: {
+    successCount: number;
+    failureCount: number;
+    total: number;
+    successRate: number;
+  };
 }
 
 interface AgentCardProps {
@@ -117,6 +126,8 @@ interface AgentCardProps {
   onClick?: (agent: AgentData) => void;
   onEdit?: (agent: AgentData) => void;
   onDelete?: (agent: AgentData) => void;
+  onPublish?: (agent: AgentData) => void;
+  onClone?: (agentId: string) => void;
 }
 
 function formatTokens(tokens: number): string {
@@ -139,7 +150,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export function AgentCard({ agent, onClick, onEdit, onDelete }: AgentCardProps) {
+export function AgentCard({ agent, onClick, onEdit, onDelete, onPublish, onClone }: AgentCardProps) {
   const RoleIcon = ROLE_ICON_MAP[agent.role] || Bot;
   const roleLabel = ROLE_LABEL_MAP[agent.role] || agent.role;
   const providerColor = PROVIDER_COLORS[agent.provider] || "bg-gray-100 text-gray-700";
@@ -202,6 +213,24 @@ export function AgentCard({ agent, onClick, onEdit, onDelete }: AgentCardProps) 
               >
                 <Pencil className="h-4 w-4" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPublish?.(agent);
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+                Publish to Marketplace
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClone?.(agent.id);
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Clone Agent
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
@@ -282,6 +311,19 @@ export function AgentCard({ agent, onClick, onEdit, onDelete }: AgentCardProps) 
                 </span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Feedback-based success rate */}
+        {agent.feedbackStats && agent.feedbackStats.total > 0 && (
+          <div className="flex items-center gap-1.5 border-t border-border pt-2 text-[11px]">
+            <ThumbsUp className={cn(
+              "h-3 w-3",
+              agent.feedbackStats.successRate >= 80 ? "text-green-500" : agent.feedbackStats.successRate >= 50 ? "text-amber-500" : "text-red-500"
+            )} />
+            <span className="text-secondary">
+              {agent.feedbackStats.successRate}% feedback score ({agent.feedbackStats.successCount}/{agent.feedbackStats.total})
+            </span>
           </div>
         )}
       </CardContent>

@@ -25,11 +25,30 @@ export async function GET(req: NextRequest) {
       _count: {
         select: { runs: true },
       },
+      feedbacks: {
+        select: { outcome: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(agents);
+  // Compute feedback stats for each agent
+  const agentsWithFeedback = agents.map((agent) => {
+    const feedbacks = agent.feedbacks || [];
+    const successCount = feedbacks.filter((f) => f.outcome === "success").length;
+    const failureCount = feedbacks.filter((f) => f.outcome === "failure").length;
+    const total = feedbacks.length;
+    const successRate = total > 0 ? Math.round((successCount / total) * 100) : 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { feedbacks: _feedbacks, ...rest } = agent;
+    return {
+      ...rest,
+      feedbackStats: total > 0 ? { successCount, failureCount, total, successRate } : undefined,
+    };
+  });
+
+  return NextResponse.json(agentsWithFeedback);
 }
 
 export async function POST(req: NextRequest) {

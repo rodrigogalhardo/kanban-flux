@@ -49,7 +49,36 @@ export async function handleCardColumnChange(cardId: string, newColumnId: string
 
   const columnTitle = column.title.toLowerCase();
 
-  // Don't trigger on "Done" column
+  // Record agent feedback when card moves to "Done" or "Bug"
+  if (columnTitle === "done" || columnTitle === "bug") {
+    try {
+      const agentMembers = card.members.filter(m => m.user.isAgent);
+      for (const member of agentMembers) {
+        const feedbackAgent = await prisma.agent.findFirst({ where: { userId: member.user.id } });
+        if (feedbackAgent) {
+          await prisma.agentFeedback.create({
+            data: {
+              agentId: feedbackAgent.id,
+              outcome: columnTitle === "done" ? "success" : "failure",
+              context: card.title,
+            },
+          });
+          triggerLogger.info("Recorded agent feedback", {
+            agentId: feedbackAgent.id,
+            outcome: columnTitle === "done" ? "success" : "failure",
+            cardTitle: card.title,
+          });
+        }
+      }
+    } catch (e) {
+      triggerLogger.error("Failed to record agent feedback", {
+        cardId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  // Don't trigger agent runs on "Done" column
   if (columnTitle === "done") return;
 
   // Find the right agent to trigger based on column

@@ -17,6 +17,8 @@ import {
   Archive,
   Calendar,
   Flag,
+  FlaskConical,
+  Swords,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ChecklistSection } from "./checklist";
@@ -28,10 +30,12 @@ import { MemberPicker } from "./member-picker";
 import { DueDatePicker } from "./due-date-picker";
 import { AgentRunTrigger } from "@/components/agents/agent-run-trigger";
 import { AgentRunStatus } from "@/components/agents/agent-run-status";
+import { PromptExperiment } from "@/components/agents/prompt-experiment";
 import { Markdown } from "@/components/ui/markdown";
 import { DependenciesSection } from "./dependencies";
 import { AttachmentsSection } from "./attachments";
 import { CardHistory } from "./card-history";
+import { MoveToBoard } from "./move-to-board";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PriorityBadge } from "./priority-badge";
 import {
@@ -61,6 +65,8 @@ export function CardDetailModal({
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [showChecklistInput, setShowChecklistInput] = useState(false);
+  const [showABTest, setShowABTest] = useState(false);
+  const [challengeLoading, setChallengeLoading] = useState(false);
 
   const refreshCard = useCallback(async () => {
     const res = await fetch(`/api/cards/${card.id}`);
@@ -338,6 +344,46 @@ export function CardDetailModal({
                 onRunStarted={refreshCard}
               />
               <AgentRunStatus cardId={card.id} onRunCompleted={refreshCard} />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-secondary hover:text-purple-600"
+                onClick={() => setShowABTest(true)}
+              >
+                <FlaskConical className="h-4 w-4" />
+                A/B Test
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-secondary hover:text-orange-600"
+                disabled={challengeLoading}
+                onClick={async () => {
+                  setChallengeLoading(true);
+                  try {
+                    const agentsRes = await fetch("/api/agents");
+                    const agents = await agentsRes.json();
+                    const agentIds = agents.slice(0, 3).map((a: { id: string }) => a.id);
+                    if (agentIds.length < 2) {
+                      alert("Need at least 2 agents for a challenge");
+                      return;
+                    }
+                    await fetch(`/api/cards/${card.id}/challenge`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ agentIds }),
+                    });
+                    refreshCard();
+                  } catch {
+                    // ignore
+                  } finally {
+                    setChallengeLoading(false);
+                  }
+                }}
+              >
+                <Swords className="h-4 w-4" />
+                {challengeLoading ? "Starting..." : "Challenge"}
+              </Button>
             </div>
 
             <Separator className="my-3" />
@@ -345,6 +391,11 @@ export function CardDetailModal({
             <p className="text-xs font-medium uppercase text-secondary mb-2">
               Actions
             </p>
+            <MoveToBoard
+              cardId={card.id}
+              currentBoardId={boardId}
+              onMoved={() => onOpenChange(false)}
+            />
             <Button
               variant="ghost"
               size="sm"
@@ -366,6 +417,12 @@ export function CardDetailModal({
           </div>
         </div>
       </DialogContent>
+
+      <PromptExperiment
+        cardId={card.id}
+        open={showABTest}
+        onOpenChange={setShowABTest}
+      />
     </Dialog>
   );
 }

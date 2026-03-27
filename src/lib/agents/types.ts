@@ -141,6 +141,7 @@ export const AGENT_TOOLS_SCHEMA = [
         title: { type: "string", description: "The card title" },
         description: { type: "string", description: "The card description with requirements" },
         columnId: { type: "string", description: "The column to create the card in" },
+        dueDate: { type: "string", description: "Estimated due date in ISO format (YYYY-MM-DD). Estimate based on task complexity." },
       },
       required: ["title", "columnId"],
     },

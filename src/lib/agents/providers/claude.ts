@@ -71,7 +71,13 @@ When you see a recent comment from a human (non-agent) user, prioritize respondi
 - Use "request_help" to ask another specialist for input (e.g., ask DBA about schema design)
 - Use "handoff" when completing your work and passing to QA (document what you did and how to test)
 - Use "escalate" if you're blocked and can't resolve an issue - the Master will help
-- When you receive a help request (see comments), respond helpfully`;
+- When you receive a help request (see comments), respond helpfully
+
+## Due Date Estimation
+When creating cards, always estimate a due date based on complexity:
+- Simple tasks (styling, copy changes): 1-2 days from now
+- Medium tasks (new component, API endpoint): 3-5 days
+- Complex tasks (architecture, integrations): 7-14 days`;
 }
 
 function buildUserMessage(context: AgentTaskContext): string {

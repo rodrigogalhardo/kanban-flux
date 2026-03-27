@@ -70,6 +70,21 @@ export default function AgentsPage() {
     setEditAgent(agent);
   }
 
+  async function handleClone(agentId: string) {
+    try {
+      const res = await fetch(`/api/agents/${agentId}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        fetchAgents();
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -118,6 +133,7 @@ export default function AgentsPage() {
           onSelect={(agent) => handleEdit(agent)}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onClone={handleClone}
         />
 
         {/* Import Agents from Markdown */}

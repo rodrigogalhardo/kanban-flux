@@ -14,11 +14,13 @@ import {
   Bot,
   Brain,
   Store,
+  Layers,
   Settings,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Bird,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,8 @@ const navItems = [
   { label: "AI Agents", icon: Bot, href: "/agents" },
   { label: "Intelligence", icon: Brain, href: "/intelligence" },
   { label: "Marketplace", icon: Store, href: "/marketplace" },
+  { label: "Artifacts", icon: Layers, href: "/artifacts" },
+  { label: "Pricing", icon: CreditCard, href: "/pricing" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 

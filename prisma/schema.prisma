@@ -29,10 +29,11 @@ model Workspace {
   name      String
   createdAt DateTime @default(now())
 
-  boards   Board[]
-  members  WorkspaceMember[]
-  apiKeys  AgentApiKey[]
-  projects Project[]
+  boards       Board[]
+  members      WorkspaceMember[]
+  apiKeys      AgentApiKey[]
+  projects     Project[]
+  subscription Subscription?
 }
 
 model WorkspaceMember {
@@ -103,6 +104,7 @@ model Project {
   simulations Simulation[]
   sprints     Sprint[]
   webhooks    Webhook[]
+  dna         ProjectDNA?
 }
 
 model Column {
@@ -138,6 +140,7 @@ model Card {
   attachments   CardAttachment[]
   sprints    SprintCard[]
   history    CardHistory[]
+  experiments   PromptExperiment[]
 }
 
 model Label {
@@ -239,6 +242,7 @@ model Agent {
   apiKey         AgentApiKey?   @relation(fields: [apiKeyId], references: [id])
   approvalGates  ApprovalGate[]
   memories       AgentMemory[]
+  feedbacks      AgentFeedback[]
 }
 
 model AgentApiKey {
@@ -492,4 +496,59 @@ model Webhook {
   createdAt   DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PromptExperiment {
+  id        String   @id @default(cuid())
+  cardId    String
+  promptA   String
+  promptB   String
+  resultA   String?
+  resultB   String?
+  tokensA   Int?
+  tokensB   Int?
+  winner    String?              // "A", "B", or null (undecided)
+  createdAt DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model AgentFeedback {
+  id        String   @id @default(cuid())
+  agentId   String
+  outcome   String              // "success", "failure", "neutral"
+  context   String?             // what the task was about
+  feedback  String?             // human feedback if any
+  createdAt DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model ProjectDNA {
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  techStack      String[]           // ["Next.js", "PostgreSQL", "Tailwind"]
+  patterns       String[]           // ["REST API", "Server Components", "Prisma ORM"]
+  decisions      Json?              // key architectural decisions
+  lessonsLearned String[]           // from agent memories
+  successRate    Float    @default(0)  // overall project success rate
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                String    @id @default(cuid())
+  workspaceId       String    @unique
+  plan              String    @default("free")    // "free", "pro", "enterprise"
+  maxProjects       Int       @default(3)
+  maxAgents         Int       @default(5)
+  maxTokensPerMonth Int       @default(100000)
+  tokensUsed        Int       @default(0)
+  validUntil        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
 }

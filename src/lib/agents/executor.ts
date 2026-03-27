@@ -104,6 +104,7 @@ async function applyAction(action: AgentAction, cardId: string, agentUserId: str
           description: description || null,
           columnId,
           position: (maxPos._max.position ?? -1) + 1,
+          dueDate: (action.payload as { dueDate?: string }).dueDate ? new Date((action.payload as { dueDate?: string }).dueDate!) : null,
         },
       });
       await logRun(runId, "info", `Created card "${title}" (id: ${newCard.id})`, { cardId: newCard.id });
@@ -159,6 +160,29 @@ async function applyAction(action: AgentAction, cardId: string, agentUserId: str
       const { commitFile } = await import("@/lib/github");
       await commitFile(repo, path, content, message, branch || "main");
       await logRun(runId, "info", `Committed to ${repo}/${path}: ${message}`);
+
+      // Also attach the file to the card for inline code diff viewing
+      const commitExt = path.split('.').pop()?.toLowerCase() || '';
+      const commitMimeTypes: Record<string, string> = {
+        ts: 'text/typescript', js: 'text/javascript', py: 'text/x-python',
+        md: 'text/markdown', txt: 'text/plain', json: 'application/json',
+        yaml: 'text/yaml', yml: 'text/yaml', html: 'text/html', css: 'text/css',
+        prisma: 'text/plain', sql: 'text/sql', sh: 'text/x-shellscript',
+        tsx: 'text/typescript', jsx: 'text/javascript', rs: 'text/x-rust',
+        go: 'text/x-go', rb: 'text/x-ruby', java: 'text/x-java',
+      };
+      await prisma.cardAttachment.create({
+        data: {
+          cardId,
+          filename: path,
+          fileType: "code",
+          mimeType: commitMimeTypes[commitExt] || "text/plain",
+          content: content,
+          size: Buffer.byteLength(content, "utf8"),
+          createdBy: agentUserId,
+        },
+      }).catch(() => {}); // non-critical
+
       break;
     }
 

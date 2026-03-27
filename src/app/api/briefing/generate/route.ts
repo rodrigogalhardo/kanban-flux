@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/agents/crypto";
+import { rateLimit } from "@/lib/rate-limiter";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit("briefing-generate", 5, 60000); // 5 per minute
+  if (!allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded. Try again in a minute." }, { status: 429 });
+  }
+
   const { idea, projectType, targetAudience, features } = await req.json();
 
   if (!idea) {

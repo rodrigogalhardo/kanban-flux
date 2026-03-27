@@ -40,6 +40,12 @@ import {
   Zap,
   ZapOff,
   Sparkles,
+  Download,
+  Repeat,
+  Brain,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -67,10 +73,30 @@ const projectCovers = [
   "from-emerald-500 to-teal-400",        // accent green
 ];
 
+interface StatusReport {
+  project: string;
+  stats: {
+    totalCards: number;
+    todoCards: number;
+    inProgressCards: number;
+    qaCards: number;
+    bugCards: number;
+    doneCards: number;
+  };
+  completionRate: number;
+  agents: string[];
+  aiReport: string;
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [statusReports, setStatusReports] = useState<Record<string, StatusReport | null>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [loadingStatus, setLoadingStatus] = useState<Record<string, boolean>>({});
+  const [expandedStatus, setExpandedStatus] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
   const fetchProjects = useCallback(async () => {
@@ -132,6 +158,34 @@ export default function ProjectsPage() {
       body: JSON.stringify({ autoTrigger }),
     });
     fetchProjects();
+  }
+
+  async function handleReplayProject(id: string, name: string) {
+    await fetch(`/api/projects/${id}/replay`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newName: `${name} (Replay)` }),
+    });
+    fetchProjects();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async function handleFetchAIStatus(id: string) {
+    if (expandedStatus[id]) {
+      setExpandedStatus((prev) => ({ ...prev, [id]: false }));
+      return;
+    }
+    setLoadingStatus((prev) => ({ ...prev, [id]: true }));
+    setExpandedStatus((prev) => ({ ...prev, [id]: true }));
+    try {
+      const res = await fetch(`/api/projects/${id}/status-report`);
+      const data = await res.json();
+      setStatusReports((prev) => ({ ...prev, [id]: data }));
+    } catch {
+      setStatusReports((prev) => ({ ...prev, [id]: null }));
+    } finally {
+      setLoadingStatus((prev) => ({ ...prev, [id]: false }));
+    }
   }
 
   return (
@@ -211,6 +265,24 @@ export default function ProjectsPage() {
                           )}
                           {project.autoTrigger ? "Disable Auto-trigger" : "Enable Auto-trigger"}
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            fetch(`/api/projects/${project.id}/export`)
+                              .then(r => r.json())
+                              .then(data => {
+                                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `${project.name.replace(/\s+/g, "-")}-export.json`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              });
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Export Project
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleCompleteProject(project.id)}
@@ -223,6 +295,12 @@ export default function ProjectsPage() {
                         >
                           <Archive className="mr-2 h-4 w-4" />
                           Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleReplayProject(project.id, project.name)}
+                        >
+                          <Repeat className="mr-2 h-4 w-4" />
+                          Replay Project
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -280,6 +358,57 @@ export default function ProjectsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* AI Status Button */}
+                    <button
+                      onClick={() => handleFetchAIStatus(project.id)}
+                      className="flex w-full items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Brain className="h-3.5 w-3.5" />
+                        AI Status Report
+                      </span>
+                      {loadingStatus[project.id] ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : expandedStatus[project.id] ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+
+                    {/* AI Status Expanded Section */}
+                    {expandedStatus[project.id] && (
+                      <div className="rounded-md border border-border bg-surface/50 p-3 text-xs">
+                        {loadingStatus[project.id] ? (
+                          <div className="flex items-center justify-center gap-2 py-2 text-secondary">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating AI report...
+                          </div>
+                        ) : statusReports[project.id] ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3 text-secondary">
+                              <span>Done: {statusReports[project.id]!.stats.doneCards}/{statusReports[project.id]!.stats.totalCards}</span>
+                              <span>Completion: {statusReports[project.id]!.completionRate}%</span>
+                              {statusReports[project.id]!.stats.bugCards > 0 && (
+                                <span className="text-red-500">Bugs: {statusReports[project.id]!.stats.bugCards}</span>
+                              )}
+                            </div>
+                            {statusReports[project.id]!.aiReport ? (
+                              <p className="text-secondary leading-relaxed whitespace-pre-wrap">
+                                {statusReports[project.id]!.aiReport}
+                              </p>
+                            ) : (
+                              <p className="text-secondary italic">
+                                No AI report available. Configure a Gemini API key to enable AI-generated reports.
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-secondary italic">Failed to load status report.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

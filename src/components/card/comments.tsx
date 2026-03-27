@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, GitPullRequest } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -143,6 +143,18 @@ export function CommentsSection({
                 </span>
               </div>
               <Markdown content={comment.text} className="mt-0.5 text-sm text-secondary" />
+              {comment.text.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g)?.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs hover:bg-green-200"
+                >
+                  <GitPullRequest className="h-3 w-3" />
+                  PR #{url.split("/").pop()}
+                </a>
+              ))}
             </div>
           </div>
         ))}
