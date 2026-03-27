@@ -28,20 +28,36 @@ export function KanbanCard({
   );
   const hasAgent = card.members?.some((m) => m.user.isAgent);
   const [isAgentWorking, setIsAgentWorking] = useState(false);
+  const [recentlyWorked, setRecentlyWorked] = useState(false);
 
-  // Check if any agent is actively working on this card
+  // Check if any agent is actively working on this card (QUEUED or RUNNING)
   useEffect(() => {
     if (!hasAgent) return;
     let cancelled = false;
     async function check() {
       try {
-        const res = await fetch(`/api/agents/runs?cardId=${card.id}&status=RUNNING`);
+        // Check for active runs (QUEUED or RUNNING)
+        const res = await fetch(`/api/agents/runs?cardId=${card.id}&limit=3`);
         const runs = await res.json();
-        if (!cancelled) setIsAgentWorking(Array.isArray(runs) && runs.length > 0);
+        if (cancelled) return;
+
+        const active = Array.isArray(runs) && runs.some(
+          (r: { status: string }) => r.status === "RUNNING" || r.status === "QUEUED"
+        );
+        setIsAgentWorking(active);
+
+        // Also check if recently completed (within last 2 minutes)
+        if (!active && Array.isArray(runs) && runs.length > 0) {
+          const latest = runs[0];
+          if (latest.status === "COMPLETED" && latest.completedAt) {
+            const completedAgo = Date.now() - new Date(latest.completedAt).getTime();
+            setRecentlyWorked(completedAgo < 120000); // 2 minutes
+          }
+        }
       } catch { /* ignore */ }
     }
     check();
-    const interval = setInterval(check, 5000);
+    const interval = setInterval(check, 3000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [card.id, hasAgent]);
 
@@ -55,17 +71,26 @@ export function KanbanCard({
           onClick={onClick}
           className={`relative cursor-pointer rounded-lg bg-white p-3 shadow-sm transition-all hover:shadow-md ${
             snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : ""
-          } ${isAgentWorking ? "ring-2 ring-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.25)]" : ""}`}
+          } ${isAgentWorking ? "ring-2 ring-green-400/60 shadow-[0_0_20px_rgba(74,222,128,0.3)]" : ""} ${recentlyWorked && !isAgentWorking ? "ring-1 ring-green-300/40" : ""}`}
           style={{
             ...provided.draggableProps.style,
             ...(isAgentWorking ? { animation: "agent-glow 2s ease-in-out infinite" } : {}),
           }}
         >
           {/* Agent working pulse indicator */}
+          {/* Active: bright green glow + ping */}
           {isAgentWorking && (
-            <div className="absolute -top-1 -right-1 flex items-center justify-center">
-              <span className="absolute h-4 w-4 rounded-full bg-green-400 opacity-75 animate-ping" />
-              <span className="relative h-3 w-3 rounded-full bg-green-500 flex items-center justify-center">
+            <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center z-10">
+              <span className="absolute h-5 w-5 rounded-full bg-green-400 opacity-75 animate-ping" />
+              <span className="relative h-4 w-4 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/50">
+                <Bot className="h-2.5 w-2.5 text-white" />
+              </span>
+            </div>
+          )}
+          {/* Recently worked: subtle green dot */}
+          {recentlyWorked && !isAgentWorking && (
+            <div className="absolute -top-1 -right-1 z-10">
+              <span className="h-3 w-3 rounded-full bg-green-400 flex items-center justify-center">
                 <Bot className="h-2 w-2 text-white" />
               </span>
             </div>
